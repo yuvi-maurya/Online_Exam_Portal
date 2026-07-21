@@ -1,7 +1,7 @@
 import { env } from '../config/env.js'
 
 export function errorHandler(error, _request, response, _next) {
-  const statusCode = error.statusCode ?? 500
+  const statusCode = error.statusCode ?? error.status ?? 500
   const isInternalError = statusCode >= 500
 
   const payload = {
