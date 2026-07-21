@@ -113,10 +113,10 @@ model Exam {
   subjectId          String
   examType           ExamType
   durationMinutes    Int
-  totalMarks         Int
+  totalMarks         Int        @default(0)
   passingMarks       Int
-  startTime          DateTime
-  endTime            DateTime
+  startTime          DateTime?
+  endTime            DateTime?
   status             ExamStatus @default(DRAFT)
   shuffleQuestions   Boolean    @default(false)
   shuffleOptions     Boolean    @default(false)
@@ -138,14 +138,15 @@ model Exam {
 }
 
 model Question {
-  id          String          @id @default(cuid())
-  subjectId   String
-  type        QuestionType
-  text        String          @db.Text
-  difficulty  DifficultyLevel
-  marks       Int
-  createdById String
-  createdAt   DateTime        @default(now())
+  id                String          @id @default(cuid())
+  subjectId         String
+  type              QuestionType
+  text              String          @db.Text
+  difficulty        DifficultyLevel
+  marks             Int
+  correctAnswerText String?         @db.Text
+  createdById       String
+  createdAt         DateTime        @default(now())
 
   subject        Subject          @relation(fields: [subjectId], references: [id], onDelete: Restrict)
   createdBy      User             @relation("QuestionCreator", fields: [createdById], references: [id], onDelete: Restrict)
@@ -163,10 +164,12 @@ model QuestionOption {
   questionId String
   text       String  @db.Text
   isCorrect  Boolean
+  order      Int
 
   question       Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
   studentAnswers StudentAnswer[]
 
+  @@unique([questionId, order])
   @@index([questionId])
 }
 
