@@ -1,5 +1,6 @@
 import { AttemptStatus, Prisma, QuestionType } from '@prisma/client'
 import { AppError } from '../utils/AppError.js'
+import { evaluateSubmittedAttempt } from './attemptEvaluationService.js'
 import {
   ATTEMPT_STATE_SELECT,
   assertAttemptOwner,
@@ -150,6 +151,7 @@ export async function saveStudentAnswer({ answer, attemptId, studentId }) {
           attemptId,
           isCorrect: null,
           marksAwarded: null,
+          needsManualReview: false,
           questionId: answer.questionId,
         },
         select: {
@@ -161,6 +163,7 @@ export async function saveStudentAnswer({ answer, attemptId, studentId }) {
           ...answerData,
           isCorrect: null,
           marksAwarded: null,
+          needsManualReview: false,
         },
         where: { attemptId_questionId: { attemptId, questionId: answer.questionId } },
       })
@@ -225,18 +228,10 @@ export async function submitStudentAttempt({ attemptId, studentId }) {
       throw attemptStateConflictError()
     }
 
-    const submitted = await transaction.examAttempt.findUniqueOrThrow({
-      select: {
-        id: true,
-        percentage: true,
-        rank: true,
-        score: true,
-        startedAt: true,
-        status: true,
-        submittedAt: true,
-        timeTakenSeconds: true,
-      },
-      where: { id: attemptId },
+    const submitted = await evaluateSubmittedAttempt({
+      attemptId,
+      evaluatedAt: now,
+      transaction,
     })
 
     return { attempt: submitted, kind: 'submitted' }

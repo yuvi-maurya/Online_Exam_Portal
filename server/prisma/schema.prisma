@@ -52,6 +52,11 @@ enum AttemptStatus {
   EVALUATED
 }
 
+enum AttemptResult {
+  PASS
+  FAIL
+}
+
 enum VerificationPurpose {
   EMAIL_VERIFICATION
   PASSWORD_RESET
@@ -191,18 +196,20 @@ model ExamQuestion {
 }
 
 model ExamAttempt {
-  id               String        @id @default(cuid())
+  id               String         @id @default(cuid())
   examId           String
   studentId        String
-  startedAt        DateTime      @default(now())
+  startedAt        DateTime       @default(now())
   submittedAt      DateTime?
-  status           AttemptStatus @default(IN_PROGRESS)
+  status           AttemptStatus  @default(IN_PROGRESS)
   score            Float?
   percentage       Float?
   rank             Int?
-  tabSwitchCount   Int           @default(0)
+  result           AttemptResult?
+  evaluatedAt      DateTime?
+  tabSwitchCount   Int            @default(0)
   timeTakenSeconds Int?
-  createdAt        DateTime      @default(now())
+  createdAt        DateTime       @default(now())
 
   exam             Exam              @relation(fields: [examId], references: [id], onDelete: Restrict)
   student          User              @relation("StudentAttempts", fields: [studentId], references: [id], onDelete: Restrict)
@@ -213,6 +220,7 @@ model ExamAttempt {
   @@index([examId])
   @@index([studentId])
   @@index([examId, status])
+  @@index([examId, status, score, submittedAt])
   @@index([studentId, createdAt])
 }
 
@@ -245,19 +253,21 @@ model AttemptQuestionOption {
 }
 
 model StudentAnswer {
-  id               String   @id @default(cuid())
-  attemptId        String
-  questionId       String
-  selectedOptionId String?
-  answerText       String?  @db.Text
-  isCorrect        Boolean?
-  marksAwarded     Float?
+  id                String   @id @default(cuid())
+  attemptId         String
+  questionId        String
+  selectedOptionId  String?
+  answerText        String?  @db.Text
+  isCorrect         Boolean?
+  marksAwarded      Float?
+  needsManualReview Boolean  @default(false)
 
   attempt        ExamAttempt     @relation(fields: [attemptId], references: [id], onDelete: Cascade)
   question       Question        @relation(fields: [questionId], references: [id], onDelete: Restrict)
   selectedOption QuestionOption? @relation(fields: [selectedOptionId], references: [id], onDelete: Restrict)
 
   @@unique([attemptId, questionId])
+  @@index([attemptId, needsManualReview])
   @@index([questionId])
   @@index([selectedOptionId])
 }

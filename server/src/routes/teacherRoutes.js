@@ -13,6 +13,7 @@ import {
   updateAttachedQuestion,
   updateExam,
 } from '../controllers/teacherExamController.js'
+import { getPendingGrading, gradeAnswer } from '../controllers/teacherEvaluationController.js'
 import {
   createQuestion,
   deleteQuestion,
@@ -40,8 +41,11 @@ teacherRouter.delete('/exams/:id/questions/:questionId', detachQuestion)
 teacherRouter.patch('/exams/:id/schedule', scheduleExam)
 teacherRouter.patch('/exams/:id/publish', publishExam)
 teacherRouter.patch('/exams/:id/archive', archiveExam)
+teacherRouter.get('/exams/:id/pending-grading', getPendingGrading)
 teacherRouter.get('/exams/:id', getExam)
 teacherRouter.patch('/exams/:id', updateExam)
 teacherRouter.delete('/exams/:id', deleteExam)
+
+teacherRouter.patch('/attempts/:attemptId/answers/:questionId/grade', gradeAnswer)
 
 export default teacherRouter

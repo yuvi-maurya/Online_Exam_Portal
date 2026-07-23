@@ -70,9 +70,11 @@ function toAttemptSummary(attempt) {
   if (!attempt) return null
 
   return {
+    evaluatedAt: attempt.evaluatedAt,
     id: attempt.id,
     percentage: attempt.percentage,
     rank: attempt.rank,
+    result: attempt.result,
     score: attempt.score,
     startedAt: attempt.startedAt,
     status: attempt.status,
@@ -121,8 +123,10 @@ export async function listAvailableStudentExams(studentId) {
       attempts: {
         select: {
           id: true,
+          evaluatedAt: true,
           percentage: true,
           rank: true,
+          result: true,
           score: true,
           startedAt: true,
           status: true,
@@ -156,10 +160,12 @@ export async function listStudentExamHistory(studentId) {
     orderBy: [{ submittedAt: 'desc' }, { createdAt: 'desc' }, { id: 'asc' }],
     select: {
       createdAt: true,
+      evaluatedAt: true,
       exam: { select: STUDENT_EXAM_METADATA_SELECT },
       id: true,
       percentage: true,
       rank: true,
+      result: true,
       score: true,
       startedAt: true,
       status: true,
@@ -174,10 +180,12 @@ export async function listStudentExamHistory(studentId) {
 
   return attempts.map((attempt) => ({
     createdAt: attempt.createdAt,
+    evaluatedAt: attempt.evaluatedAt,
     exam: toStudentExamMetadata(attempt.exam),
     id: attempt.id,
     percentage: attempt.percentage,
     rank: attempt.rank,
+    result: attempt.result,
     score: attempt.score,
     startedAt: attempt.startedAt,
     status: attempt.status,

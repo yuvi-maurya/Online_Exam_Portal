@@ -2,6 +2,7 @@ import { randomInt } from 'node:crypto'
 import { AttemptStatus } from '@prisma/client'
 import { AppError } from '../utils/AppError.js'
 import { runSerializableTransaction } from '../utils/prismaTransactions.js'
+import { evaluateSubmittedAttempt } from './attemptEvaluationService.js'
 
 export const ATTEMPT_STATE_SELECT = {
   exam: { select: { durationMinutes: true } },
@@ -154,6 +155,12 @@ export async function autoFinalizeExpiredAttempt({ attempt, now, transaction }) 
   if (update.count !== 1) {
     throw attemptStateConflictError()
   }
+
+  await evaluateSubmittedAttempt({
+    attemptId: attempt.id,
+    evaluatedAt: now,
+    transaction,
+  })
 
   return true
 }
