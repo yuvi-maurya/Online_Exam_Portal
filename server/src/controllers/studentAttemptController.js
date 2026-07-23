@@ -1,0 +1,45 @@
+import {
+  getStudentAttempt,
+  saveStudentAnswer,
+  submitStudentAttempt,
+} from '../services/studentAttemptService.js'
+import { validateStudentAnswer, validateStudentResourceId } from '../utils/studentValidation.js'
+
+export async function getAttempt(request, response) {
+  const attempt = await getStudentAttempt({
+    attemptId: validateStudentResourceId(request.params.id, 'attemptId'),
+    studentId: request.user.userId,
+  })
+
+  response.status(200).json({
+    status: 'success',
+    data: { attempt },
+  })
+}
+
+export async function saveAnswer(request, response) {
+  const answer = await saveStudentAnswer({
+    answer: validateStudentAnswer(request.body),
+    attemptId: validateStudentResourceId(request.params.id, 'attemptId'),
+    studentId: request.user.userId,
+  })
+
+  response.status(200).json({
+    status: 'success',
+    message: 'Answer saved successfully.',
+    data: { answer },
+  })
+}
+
+export async function submitAttempt(request, response) {
+  const attempt = await submitStudentAttempt({
+    attemptId: validateStudentResourceId(request.params.id, 'attemptId'),
+    studentId: request.user.userId,
+  })
+
+  response.status(200).json({
+    status: 'success',
+    message: 'Exam attempt submitted successfully.',
+    data: { attempt },
+  })
+}

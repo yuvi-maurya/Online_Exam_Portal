@@ -148,11 +148,12 @@ model Question {
   createdById       String
   createdAt         DateTime        @default(now())
 
-  subject        Subject          @relation(fields: [subjectId], references: [id], onDelete: Restrict)
-  createdBy      User             @relation("QuestionCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  options        QuestionOption[]
-  exams          ExamQuestion[]
-  studentAnswers StudentAnswer[]
+  subject          Subject           @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  createdBy        User              @relation("QuestionCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  options          QuestionOption[]
+  exams            ExamQuestion[]
+  studentAnswers   StudentAnswer[]
+  attemptQuestions AttemptQuestion[]
 
   @@index([subjectId])
   @@index([createdById])
@@ -166,8 +167,9 @@ model QuestionOption {
   isCorrect  Boolean
   order      Int
 
-  question       Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  studentAnswers StudentAnswer[]
+  question               Question                @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  studentAnswers         StudentAnswer[]
+  attemptQuestionOptions AttemptQuestionOption[]
 
   @@unique([questionId, order])
   @@index([questionId])
@@ -189,26 +191,57 @@ model ExamQuestion {
 }
 
 model ExamAttempt {
-  id             String        @id @default(cuid())
-  examId         String
-  studentId      String
-  startedAt      DateTime      @default(now())
-  submittedAt    DateTime?
-  status         AttemptStatus @default(IN_PROGRESS)
-  score          Float?
-  percentage     Float?
-  rank           Int?
-  tabSwitchCount Int           @default(0)
-  createdAt      DateTime      @default(now())
+  id               String        @id @default(cuid())
+  examId           String
+  studentId        String
+  startedAt        DateTime      @default(now())
+  submittedAt      DateTime?
+  status           AttemptStatus @default(IN_PROGRESS)
+  score            Float?
+  percentage       Float?
+  rank             Int?
+  tabSwitchCount   Int           @default(0)
+  timeTakenSeconds Int?
+  createdAt        DateTime      @default(now())
 
-  exam    Exam            @relation(fields: [examId], references: [id], onDelete: Restrict)
-  student User            @relation("StudentAttempts", fields: [studentId], references: [id], onDelete: Restrict)
-  answers StudentAnswer[]
+  exam             Exam              @relation(fields: [examId], references: [id], onDelete: Restrict)
+  student          User              @relation("StudentAttempts", fields: [studentId], references: [id], onDelete: Restrict)
+  answers          StudentAnswer[]
+  attemptQuestions AttemptQuestion[]
 
+  @@unique([examId, studentId])
   @@index([examId])
   @@index([studentId])
   @@index([examId, status])
   @@index([studentId, createdAt])
+}
+
+model AttemptQuestion {
+  attemptId  String
+  questionId String
+  order      Int
+
+  attempt  ExamAttempt             @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question Question                @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  options  AttemptQuestionOption[]
+
+  @@id([attemptId, questionId])
+  @@unique([attemptId, order])
+  @@index([questionId])
+}
+
+model AttemptQuestionOption {
+  attemptId  String
+  questionId String
+  optionId   String
+  order      Int
+
+  attemptQuestion AttemptQuestion @relation(fields: [attemptId, questionId], references: [attemptId, questionId], onDelete: Cascade)
+  option          QuestionOption  @relation(fields: [optionId], references: [id], onDelete: Restrict)
+
+  @@id([attemptId, questionId, optionId])
+  @@unique([attemptId, questionId, order])
+  @@index([optionId])
 }
 
 model StudentAnswer {

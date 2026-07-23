@@ -1,0 +1,250 @@
+import { AttemptStatus, Prisma, QuestionType } from '@prisma/client'
+import { AppError } from '../utils/AppError.js'
+import {
+  ATTEMPT_STATE_SELECT,
+  assertAttemptOwner,
+  attemptNotInProgressError,
+  attemptStateConflictError,
+  attemptTimeExpiredError,
+  autoFinalizeExpiredAttempt,
+  loadStudentAttemptView,
+  runStudentAttemptTransaction,
+  toStudentAttemptView,
+} from './studentAttemptSupport.js'
+
+const CHOICE_QUESTION_TYPES = new Set([QuestionType.MCQ, QuestionType.TRUE_FALSE])
+const OPEN_QUESTION_TYPES = new Set([
+  QuestionType.CODING,
+  QuestionType.ESSAY,
+  QuestionType.FILL_BLANK,
+  QuestionType.SHORT_ANSWER,
+])
+
+function isPrismaError(error, code) {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === code
+}
+
+async function inspectActiveAttempt({ attemptId, now, studentId, transaction }) {
+  const attempt = await transaction.examAttempt.findUnique({
+    select: ATTEMPT_STATE_SELECT,
+    where: { id: attemptId },
+  })
+
+  assertAttemptOwner(attempt, studentId)
+
+  if (attempt.status === AttemptStatus.AUTO_SUBMITTED) {
+    return { attempt, expired: true }
+  }
+
+  if (attempt.status !== AttemptStatus.IN_PROGRESS) {
+    throw attemptNotInProgressError()
+  }
+
+  const expired = await autoFinalizeExpiredAttempt({ attempt, now, transaction })
+  return { attempt, expired }
+}
+
+function answerTypeMismatchError(type) {
+  return new AppError(
+    `${type} questions require the matching answer format`,
+    400,
+    'ANSWER_TYPE_MISMATCH',
+  )
+}
+
+function questionNotInAttemptError() {
+  return new AppError(
+    'The question is not part of this exam attempt',
+    400,
+    'QUESTION_NOT_IN_ATTEMPT',
+  )
+}
+
+export async function getStudentAttempt({ attemptId, studentId }) {
+  const outcome = await runStudentAttemptTransaction(async (transaction) => {
+    const active = await inspectActiveAttempt({
+      attemptId,
+      now: new Date(),
+      studentId,
+      transaction,
+    })
+
+    if (active.expired) {
+      return { kind: 'expired' }
+    }
+
+    const attempt = await loadStudentAttemptView(attemptId, studentId, transaction)
+    return { attempt: toStudentAttemptView(attempt), kind: 'active' }
+  })
+
+  if (outcome.kind === 'expired') {
+    throw attemptTimeExpiredError()
+  }
+
+  return outcome.attempt
+}
+
+export async function saveStudentAnswer({ answer, attemptId, studentId }) {
+  try {
+    const outcome = await runStudentAttemptTransaction(async (transaction) => {
+      const active = await inspectActiveAttempt({
+        attemptId,
+        now: new Date(),
+        studentId,
+        transaction,
+      })
+
+      if (active.expired) {
+        return { kind: 'expired' }
+      }
+
+      const attemptQuestion = await transaction.attemptQuestion.findUnique({
+        select: {
+          options: { select: { optionId: true } },
+          question: { select: { type: true } },
+        },
+        where: {
+          attemptId_questionId: {
+            attemptId,
+            questionId: answer.questionId,
+          },
+        },
+      })
+
+      if (!attemptQuestion) {
+        throw questionNotInAttemptError()
+      }
+
+      const questionType = attemptQuestion.question.type
+      let answerData
+
+      if (CHOICE_QUESTION_TYPES.has(questionType)) {
+        if (!answer.selectedOptionId || answer.answerText !== null) {
+          throw answerTypeMismatchError(questionType)
+        }
+
+        if (
+          !attemptQuestion.options.some((option) => option.optionId === answer.selectedOptionId)
+        ) {
+          throw new AppError(
+            'The selected option does not belong to this question',
+            400,
+            'OPTION_NOT_IN_QUESTION',
+          )
+        }
+
+        answerData = { answerText: null, selectedOptionId: answer.selectedOptionId }
+      } else if (OPEN_QUESTION_TYPES.has(questionType)) {
+        if (answer.selectedOptionId !== null || !answer.answerText?.trim()) {
+          throw answerTypeMismatchError(questionType)
+        }
+
+        answerData = { answerText: answer.answerText, selectedOptionId: null }
+      } else {
+        throw new AppError('Unsupported question type', 400, 'UNSUPPORTED_QUESTION_TYPE')
+      }
+
+      const saved = await transaction.studentAnswer.upsert({
+        create: {
+          ...answerData,
+          attemptId,
+          isCorrect: null,
+          marksAwarded: null,
+          questionId: answer.questionId,
+        },
+        select: {
+          answerText: true,
+          questionId: true,
+          selectedOptionId: true,
+        },
+        update: {
+          ...answerData,
+          isCorrect: null,
+          marksAwarded: null,
+        },
+        where: { attemptId_questionId: { attemptId, questionId: answer.questionId } },
+      })
+
+      return { answer: saved, kind: 'saved' }
+    })
+
+    if (outcome.kind === 'expired') {
+      throw attemptTimeExpiredError()
+    }
+
+    return outcome.answer
+  } catch (error) {
+    if (isPrismaError(error, 'P2002')) {
+      throw new AppError(
+        'The answer changed concurrently. Please retry.',
+        409,
+        'ANSWER_SAVE_CONFLICT',
+      )
+    }
+
+    if (isPrismaError(error, 'P2003') || isPrismaError(error, 'P2025')) {
+      throw new AppError(
+        'The question or option changed while saving the answer',
+        409,
+        'ANSWER_SAVE_CONFLICT',
+      )
+    }
+
+    throw error
+  }
+}
+
+export async function submitStudentAttempt({ attemptId, studentId }) {
+  const outcome = await runStudentAttemptTransaction(async (transaction) => {
+    const now = new Date()
+    const active = await inspectActiveAttempt({ attemptId, now, studentId, transaction })
+
+    if (active.expired) {
+      return { kind: 'expired' }
+    }
+
+    const maximumSeconds = active.attempt.exam.durationMinutes * 60
+    const elapsedSeconds = Math.max(
+      0,
+      Math.floor((now.getTime() - active.attempt.startedAt.getTime()) / 1_000),
+    )
+    const update = await transaction.examAttempt.updateMany({
+      data: {
+        status: AttemptStatus.SUBMITTED,
+        submittedAt: now,
+        timeTakenSeconds: Math.min(maximumSeconds, elapsedSeconds),
+      },
+      where: {
+        id: attemptId,
+        status: AttemptStatus.IN_PROGRESS,
+        studentId,
+      },
+    })
+
+    if (update.count !== 1) {
+      throw attemptStateConflictError()
+    }
+
+    const submitted = await transaction.examAttempt.findUniqueOrThrow({
+      select: {
+        id: true,
+        percentage: true,
+        rank: true,
+        score: true,
+        startedAt: true,
+        status: true,
+        submittedAt: true,
+        timeTakenSeconds: true,
+      },
+      where: { id: attemptId },
+    })
+
+    return { attempt: submitted, kind: 'submitted' }
+  })
+
+  if (outcome.kind === 'expired') {
+    throw attemptTimeExpiredError()
+  }
+
+  return outcome.attempt
+}
