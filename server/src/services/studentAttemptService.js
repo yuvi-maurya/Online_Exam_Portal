@@ -1,6 +1,7 @@
 import { AttemptStatus, Prisma, QuestionType } from '@prisma/client'
 import { AppError } from '../utils/AppError.js'
 import { evaluateSubmittedAttempt } from './attemptEvaluationService.js'
+import { publishResultNotificationSafely } from './notificationDeliveryService.js'
 import {
   ATTEMPT_STATE_SELECT,
   assertAttemptOwner,
@@ -34,15 +35,15 @@ async function inspectActiveAttempt({ attemptId, now, studentId, transaction }) 
   assertAttemptOwner(attempt, studentId)
 
   if (attempt.status === AttemptStatus.AUTO_SUBMITTED) {
-    return { attempt, expired: true }
+    return { attempt, expired: true, notificationAttemptId: null }
   }
 
   if (attempt.status !== AttemptStatus.IN_PROGRESS) {
     throw attemptNotInProgressError()
   }
 
-  const expired = await autoFinalizeExpiredAttempt({ attempt, now, transaction })
-  return { attempt, expired }
+  const expiration = await autoFinalizeExpiredAttempt({ attempt, now, transaction })
+  return { attempt, ...expiration }
 }
 
 function answerTypeMismatchError(type) {
@@ -71,12 +72,19 @@ export async function getStudentAttempt({ attemptId, studentId }) {
     })
 
     if (active.expired) {
-      return { kind: 'expired' }
+      return {
+        kind: 'expired',
+        notificationAttemptId: active.notificationAttemptId,
+      }
     }
 
     const attempt = await loadStudentAttemptView(attemptId, studentId, transaction)
     return { attempt: toStudentAttemptView(attempt), kind: 'active' }
   })
+
+  if (outcome.notificationAttemptId) {
+    await publishResultNotificationSafely(outcome.notificationAttemptId)
+  }
 
   if (outcome.kind === 'expired') {
     throw attemptTimeExpiredError()
@@ -96,7 +104,10 @@ export async function saveStudentAnswer({ answer, attemptId, studentId }) {
       })
 
       if (active.expired) {
-        return { kind: 'expired' }
+        return {
+          kind: 'expired',
+          notificationAttemptId: active.notificationAttemptId,
+        }
       }
 
       const attemptQuestion = await transaction.attemptQuestion.findUnique({
@@ -171,6 +182,10 @@ export async function saveStudentAnswer({ answer, attemptId, studentId }) {
       return { answer: saved, kind: 'saved' }
     })
 
+    if (outcome.notificationAttemptId) {
+      await publishResultNotificationSafely(outcome.notificationAttemptId)
+    }
+
     if (outcome.kind === 'expired') {
       throw attemptTimeExpiredError()
     }
@@ -203,7 +218,10 @@ export async function submitStudentAttempt({ attemptId, studentId }) {
     const active = await inspectActiveAttempt({ attemptId, now, studentId, transaction })
 
     if (active.expired) {
-      return { kind: 'expired' }
+      return {
+        kind: 'expired',
+        notificationAttemptId: active.notificationAttemptId,
+      }
     }
 
     const maximumSeconds = active.attempt.exam.durationMinutes * 60
@@ -228,14 +246,22 @@ export async function submitStudentAttempt({ attemptId, studentId }) {
       throw attemptStateConflictError()
     }
 
-    const submitted = await evaluateSubmittedAttempt({
+    const evaluation = await evaluateSubmittedAttempt({
       attemptId,
       evaluatedAt: now,
       transaction,
     })
 
-    return { attempt: submitted, kind: 'submitted' }
+    return {
+      attempt: evaluation.attempt,
+      kind: 'submitted',
+      notificationAttemptId: evaluation.notificationAttemptId,
+    }
   })
+
+  if (outcome.notificationAttemptId) {
+    await publishResultNotificationSafely(outcome.notificationAttemptId)
+  }
 
   if (outcome.kind === 'expired') {
     throw attemptTimeExpiredError()

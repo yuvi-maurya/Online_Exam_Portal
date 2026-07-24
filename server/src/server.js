@@ -1,10 +1,15 @@
 import { app } from './app.js'
 import { env } from './config/env.js'
 import { prisma } from './config/prisma.js'
+import {
+  shutdownNotificationReminderJobs,
+  startNotificationReminderJob,
+} from './jobs/notificationReminderJob.js'
 
 const httpServer = app.listen(env.port, () => {
   console.info(`Exam Portal API listening on http://localhost:${env.port}`)
 })
+const notificationReminderTask = env.enableCronJobs ? startNotificationReminderJob() : null
 
 let isShuttingDown = false
 
@@ -22,6 +27,14 @@ async function shutdown(signal) {
   }, 10_000)
 
   forcedExitTimer.unref()
+
+  try {
+    if (notificationReminderTask) {
+      await shutdownNotificationReminderJobs(5_000)
+    }
+  } catch (error) {
+    console.error('Failed to stop the notification reminder job cleanly:', error)
+  }
 
   httpServer.close(async () => {
     await prisma.$disconnect()

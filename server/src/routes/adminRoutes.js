@@ -1,6 +1,11 @@
 import { Role } from '@prisma/client'
 import { Router } from 'express'
 import { getAdminDashboard } from '../controllers/adminDashboardController.js'
+import {
+  getAdminOverviewReport,
+  getAdminSubjectWiseReport,
+  getAdminTopPerformersReport,
+} from '../controllers/adminReportController.js'
 import { createManagedUserController } from '../controllers/adminUserController.js'
 import {
   createSubject,
@@ -28,6 +33,9 @@ const teacherController = createManagedUserController({
 adminRouter.use(requireAuth, requireRole(Role.ADMIN))
 
 adminRouter.get('/dashboard', getAdminDashboard)
+adminRouter.get('/reports/overview', getAdminOverviewReport)
+adminRouter.get('/reports/subject-wise', getAdminSubjectWiseReport)
+adminRouter.get('/reports/top-performers', getAdminTopPerformersReport)
 
 adminRouter.post('/students', studentController.create)
 adminRouter.get('/students', studentController.list)

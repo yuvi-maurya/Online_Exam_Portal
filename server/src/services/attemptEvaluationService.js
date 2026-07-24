@@ -2,6 +2,7 @@ import { AttemptResult, AttemptStatus, Prisma, QuestionType } from '@prisma/clie
 import { prisma } from '../config/prisma.js'
 import { AppError } from '../utils/AppError.js'
 import { runSerializableTransaction } from '../utils/prismaTransactions.js'
+import { publishResultNotificationSafely } from './notificationDeliveryService.js'
 
 const CHOICE_TYPES = new Set([QuestionType.MCQ, QuestionType.TRUE_FALSE])
 const MANUAL_TYPES = new Set([QuestionType.CODING, QuestionType.ESSAY, QuestionType.SHORT_ANSWER])
@@ -110,7 +111,7 @@ export async function finalizeAttemptIfFullyGraded({
   }
 
   if (attempt.answers.some((answer) => answer.marksAwarded === null)) {
-    return { finalized: false }
+    return { finalized: false, transitionedToEvaluated: false }
   }
 
   if (attempt.exam.totalMarks <= 0) {
@@ -125,6 +126,7 @@ export async function finalizeAttemptIfFullyGraded({
 
   const percentage = (score / attempt.exam.totalMarks) * 100
   const result = score >= attempt.exam.passingMarks ? AttemptResult.PASS : AttemptResult.FAIL
+  const transitionedToEvaluated = attempt.status !== AttemptStatus.EVALUATED
   const update = await transaction.examAttempt.updateMany({
     data: {
       evaluatedAt,
@@ -148,7 +150,7 @@ export async function finalizeAttemptIfFullyGraded({
   }
 
   await recomputeExamRanks(attempt.examId, transaction)
-  return { finalized: true }
+  return { finalized: true, transitionedToEvaluated }
 }
 
 export async function evaluateSubmittedAttempt({
@@ -198,10 +200,13 @@ export async function evaluateSubmittedAttempt({
 
   if (![AttemptStatus.SUBMITTED, AttemptStatus.AUTO_SUBMITTED].includes(attempt.status)) {
     if (attempt.status === AttemptStatus.EVALUATED) {
-      return transaction.examAttempt.findUniqueOrThrow({
-        select: ATTEMPT_RESULT_SELECT,
-        where: { id: attemptId },
-      })
+      return {
+        attempt: await transaction.examAttempt.findUniqueOrThrow({
+          select: ATTEMPT_RESULT_SELECT,
+          where: { id: attemptId },
+        }),
+        notificationAttemptId: null,
+      }
     }
 
     throw new AppError('Only submitted attempts can be evaluated', 409, 'ATTEMPT_NOT_SUBMITTED')
@@ -259,17 +264,25 @@ export async function evaluateSubmittedAttempt({
     })
   }
 
-  await finalizeAttemptIfFullyGraded({ attemptId, evaluatedAt, transaction })
-
-  return transaction.examAttempt.findUniqueOrThrow({
+  const evaluation = await finalizeAttemptIfFullyGraded({
+    attemptId,
+    evaluatedAt,
+    transaction,
+  })
+  const evaluatedAttempt = await transaction.examAttempt.findUniqueOrThrow({
     select: ATTEMPT_RESULT_SELECT,
     where: { id: attemptId },
   })
+
+  return {
+    attempt: evaluatedAttempt,
+    notificationAttemptId: evaluation.transitionedToEvaluated ? attemptId : null,
+  }
 }
 
 export async function gradeAttemptAnswer({ attemptId, marksAwarded, questionId, teacherId }) {
   try {
-    return await runEvaluationTransaction(async (transaction) => {
+    const outcome = await runEvaluationTransaction(async (transaction) => {
       const attempt = await transaction.examAttempt.findUnique({
         select: {
           exam: {
@@ -365,8 +378,21 @@ export async function gradeAttemptAnswer({ attemptId, marksAwarded, questionId, 
         where: { id: attemptId },
       })
 
-      return { answer: gradedAnswer, attempt: updatedAttempt, finalized: evaluation.finalized }
+      return {
+        notificationAttemptId: evaluation.transitionedToEvaluated ? attemptId : null,
+        result: {
+          answer: gradedAnswer,
+          attempt: updatedAttempt,
+          finalized: evaluation.finalized,
+        },
+      }
     })
+
+    if (outcome.notificationAttemptId) {
+      await publishResultNotificationSafely(outcome.notificationAttemptId)
+    }
+
+    return outcome.result
   } catch (error) {
     if (isPrismaError(error, 'P2025')) {
       throw new AppError(

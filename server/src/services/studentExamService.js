@@ -1,6 +1,7 @@
 import { AttemptStatus, ExamStatus, Prisma } from '@prisma/client'
 import { prisma } from '../config/prisma.js'
 import { AppError } from '../utils/AppError.js'
+import { publishResultNotificationSafely } from './notificationDeliveryService.js'
 import {
   ATTEMPT_STATE_SELECT,
   attemptTimeExpiredError,
@@ -218,8 +219,15 @@ async function startStudentExamInternal({ examId, studentId }, retryUniqueConfli
         }
 
         if (hasAttemptExpired(existing, now)) {
-          await autoFinalizeExpiredAttempt({ attempt: existing, now, transaction })
-          return { kind: 'expired' }
+          const expiration = await autoFinalizeExpiredAttempt({
+            attempt: existing,
+            now,
+            transaction,
+          })
+          return {
+            kind: 'expired',
+            notificationAttemptId: expiration.notificationAttemptId,
+          }
         }
       }
 
@@ -256,6 +264,10 @@ async function startStudentExamInternal({ examId, studentId }, retryUniqueConfli
       const attempt = await loadStudentAttemptView(created.id, studentId, transaction)
       return { attempt: toStudentAttemptView(attempt), created: true, kind: 'active' }
     })
+
+    if (outcome.notificationAttemptId) {
+      await publishResultNotificationSafely(outcome.notificationAttemptId)
+    }
 
     if (outcome.kind === 'expired') {
       throw attemptTimeExpiredError()

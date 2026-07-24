@@ -21,6 +21,7 @@ import {
   listQuestions,
   updateQuestion,
 } from '../controllers/teacherQuestionController.js'
+import { getExamReport } from '../controllers/teacherReportController.js'
 import { requireAuth, requireRole } from '../middlewares/auth.js'
 
 const teacherRouter = Router()
@@ -42,6 +43,7 @@ teacherRouter.patch('/exams/:id/schedule', scheduleExam)
 teacherRouter.patch('/exams/:id/publish', publishExam)
 teacherRouter.patch('/exams/:id/archive', archiveExam)
 teacherRouter.get('/exams/:id/pending-grading', getPendingGrading)
+teacherRouter.get('/exams/:id/report', getExamReport)
 teacherRouter.get('/exams/:id', getExam)
 teacherRouter.patch('/exams/:id', updateExam)
 teacherRouter.delete('/exams/:id', deleteExam)

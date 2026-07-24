@@ -135,7 +135,7 @@ export function hasAttemptExpired(attempt, now) {
 
 export async function autoFinalizeExpiredAttempt({ attempt, now, transaction }) {
   if (!hasAttemptExpired(attempt, now)) {
-    return false
+    return { expired: false, notificationAttemptId: null }
   }
 
   const deadlineAt = getAttemptDeadline(attempt.startedAt, attempt.exam.durationMinutes)
@@ -156,13 +156,16 @@ export async function autoFinalizeExpiredAttempt({ attempt, now, transaction }) 
     throw attemptStateConflictError()
   }
 
-  await evaluateSubmittedAttempt({
+  const evaluation = await evaluateSubmittedAttempt({
     attemptId: attempt.id,
     evaluatedAt: now,
     transaction,
   })
 
-  return true
+  return {
+    expired: true,
+    notificationAttemptId: evaluation.notificationAttemptId,
+  }
 }
 
 function shuffle(values) {
