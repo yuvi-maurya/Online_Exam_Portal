@@ -1,7 +1,7 @@
 import { AttemptStatus, ExamStatus, Prisma } from '@prisma/client'
 import { prisma } from '../config/prisma.js'
 import { AppError } from '../utils/AppError.js'
-import { publishResultNotificationSafely } from './notificationDeliveryService.js'
+import { runEvaluationPostCommitEffectsSafely } from './evaluationCompletionService.js'
 import {
   ATTEMPT_STATE_SELECT,
   attemptTimeExpiredError,
@@ -225,6 +225,7 @@ async function startStudentExamInternal({ examId, studentId }, retryUniqueConfli
             transaction,
           })
           return {
+            certificateAttemptId: expiration.certificateAttemptId,
             kind: 'expired',
             notificationAttemptId: expiration.notificationAttemptId,
           }
@@ -265,8 +266,8 @@ async function startStudentExamInternal({ examId, studentId }, retryUniqueConfli
       return { attempt: toStudentAttemptView(attempt), created: true, kind: 'active' }
     })
 
-    if (outcome.notificationAttemptId) {
-      await publishResultNotificationSafely(outcome.notificationAttemptId)
+    if (outcome.notificationAttemptId || outcome.certificateAttemptId) {
+      await runEvaluationPostCommitEffectsSafely(outcome)
     }
 
     if (outcome.kind === 'expired') {

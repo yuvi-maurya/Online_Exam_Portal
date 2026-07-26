@@ -135,7 +135,11 @@ export function hasAttemptExpired(attempt, now) {
 
 export async function autoFinalizeExpiredAttempt({ attempt, now, transaction }) {
   if (!hasAttemptExpired(attempt, now)) {
-    return { expired: false, notificationAttemptId: null }
+    return {
+      certificateAttemptId: null,
+      expired: false,
+      notificationAttemptId: null,
+    }
   }
 
   const deadlineAt = getAttemptDeadline(attempt.startedAt, attempt.exam.durationMinutes)
@@ -163,6 +167,7 @@ export async function autoFinalizeExpiredAttempt({ attempt, now, transaction }) 
   })
 
   return {
+    certificateAttemptId: evaluation.certificateAttemptId,
     expired: true,
     notificationAttemptId: evaluation.notificationAttemptId,
   }

@@ -1,7 +1,7 @@
 import { AttemptStatus, Prisma, QuestionType } from '@prisma/client'
 import { AppError } from '../utils/AppError.js'
 import { evaluateSubmittedAttempt } from './attemptEvaluationService.js'
-import { publishResultNotificationSafely } from './notificationDeliveryService.js'
+import { runEvaluationPostCommitEffectsSafely } from './evaluationCompletionService.js'
 import {
   ATTEMPT_STATE_SELECT,
   assertAttemptOwner,
@@ -35,7 +35,12 @@ async function inspectActiveAttempt({ attemptId, now, studentId, transaction }) 
   assertAttemptOwner(attempt, studentId)
 
   if (attempt.status === AttemptStatus.AUTO_SUBMITTED) {
-    return { attempt, expired: true, notificationAttemptId: null }
+    return {
+      attempt,
+      certificateAttemptId: null,
+      expired: true,
+      notificationAttemptId: null,
+    }
   }
 
   if (attempt.status !== AttemptStatus.IN_PROGRESS) {
@@ -73,6 +78,7 @@ export async function getStudentAttempt({ attemptId, studentId }) {
 
     if (active.expired) {
       return {
+        certificateAttemptId: active.certificateAttemptId,
         kind: 'expired',
         notificationAttemptId: active.notificationAttemptId,
       }
@@ -82,8 +88,8 @@ export async function getStudentAttempt({ attemptId, studentId }) {
     return { attempt: toStudentAttemptView(attempt), kind: 'active' }
   })
 
-  if (outcome.notificationAttemptId) {
-    await publishResultNotificationSafely(outcome.notificationAttemptId)
+  if (outcome.notificationAttemptId || outcome.certificateAttemptId) {
+    await runEvaluationPostCommitEffectsSafely(outcome)
   }
 
   if (outcome.kind === 'expired') {
@@ -105,6 +111,7 @@ export async function saveStudentAnswer({ answer, attemptId, studentId }) {
 
       if (active.expired) {
         return {
+          certificateAttemptId: active.certificateAttemptId,
           kind: 'expired',
           notificationAttemptId: active.notificationAttemptId,
         }
@@ -182,8 +189,8 @@ export async function saveStudentAnswer({ answer, attemptId, studentId }) {
       return { answer: saved, kind: 'saved' }
     })
 
-    if (outcome.notificationAttemptId) {
-      await publishResultNotificationSafely(outcome.notificationAttemptId)
+    if (outcome.notificationAttemptId || outcome.certificateAttemptId) {
+      await runEvaluationPostCommitEffectsSafely(outcome)
     }
 
     if (outcome.kind === 'expired') {
@@ -219,6 +226,7 @@ export async function submitStudentAttempt({ attemptId, studentId }) {
 
     if (active.expired) {
       return {
+        certificateAttemptId: active.certificateAttemptId,
         kind: 'expired',
         notificationAttemptId: active.notificationAttemptId,
       }
@@ -254,13 +262,14 @@ export async function submitStudentAttempt({ attemptId, studentId }) {
 
     return {
       attempt: evaluation.attempt,
+      certificateAttemptId: evaluation.certificateAttemptId,
       kind: 'submitted',
       notificationAttemptId: evaluation.notificationAttemptId,
     }
   })
 
-  if (outcome.notificationAttemptId) {
-    await publishResultNotificationSafely(outcome.notificationAttemptId)
+  if (outcome.notificationAttemptId || outcome.certificateAttemptId) {
+    await runEvaluationPostCommitEffectsSafely(outcome)
   }
 
   if (outcome.kind === 'expired') {

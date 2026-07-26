@@ -31,6 +31,11 @@ if (Number.isNaN(parsedSmtpPort)) {
 
 export const env = Object.freeze({
   clientUrl: process.env.CLIENT_URL ?? 'http://localhost:5173',
+  cloudinary: Object.freeze({
+    apiKey: process.env.CLOUDINARY_API_KEY,
+    apiSecret: process.env.CLOUDINARY_API_SECRET,
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+  }),
   enableCronJobs: parseBoolean(process.env.ENABLE_CRON_JOBS, 'ENABLE_CRON_JOBS'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '1h',
   jwtSecret: process.env.JWT_SECRET,

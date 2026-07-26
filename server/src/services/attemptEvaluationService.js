@@ -2,7 +2,7 @@ import { AttemptResult, AttemptStatus, Prisma, QuestionType } from '@prisma/clie
 import { prisma } from '../config/prisma.js'
 import { AppError } from '../utils/AppError.js'
 import { runSerializableTransaction } from '../utils/prismaTransactions.js'
-import { publishResultNotificationSafely } from './notificationDeliveryService.js'
+import { runEvaluationPostCommitEffectsSafely } from './evaluationCompletionService.js'
 
 const CHOICE_TYPES = new Set([QuestionType.MCQ, QuestionType.TRUE_FALSE])
 const MANUAL_TYPES = new Set([QuestionType.CODING, QuestionType.ESSAY, QuestionType.SHORT_ANSWER])
@@ -111,7 +111,11 @@ export async function finalizeAttemptIfFullyGraded({
   }
 
   if (attempt.answers.some((answer) => answer.marksAwarded === null)) {
-    return { finalized: false, transitionedToEvaluated: false }
+    return {
+      certificateReconciliationRequired: false,
+      finalized: false,
+      transitionedToEvaluated: false,
+    }
   }
 
   if (attempt.exam.totalMarks <= 0) {
@@ -150,7 +154,11 @@ export async function finalizeAttemptIfFullyGraded({
   }
 
   await recomputeExamRanks(attempt.examId, transaction)
-  return { finalized: true, transitionedToEvaluated }
+  return {
+    certificateReconciliationRequired: true,
+    finalized: true,
+    transitionedToEvaluated,
+  }
 }
 
 export async function evaluateSubmittedAttempt({
@@ -200,11 +208,13 @@ export async function evaluateSubmittedAttempt({
 
   if (![AttemptStatus.SUBMITTED, AttemptStatus.AUTO_SUBMITTED].includes(attempt.status)) {
     if (attempt.status === AttemptStatus.EVALUATED) {
+      const evaluatedAttempt = await transaction.examAttempt.findUniqueOrThrow({
+        select: ATTEMPT_RESULT_SELECT,
+        where: { id: attemptId },
+      })
       return {
-        attempt: await transaction.examAttempt.findUniqueOrThrow({
-          select: ATTEMPT_RESULT_SELECT,
-          where: { id: attemptId },
-        }),
+        attempt: evaluatedAttempt,
+        certificateAttemptId: attemptId,
         notificationAttemptId: null,
       }
     }
@@ -276,6 +286,7 @@ export async function evaluateSubmittedAttempt({
 
   return {
     attempt: evaluatedAttempt,
+    certificateAttemptId: evaluation.certificateReconciliationRequired ? attemptId : null,
     notificationAttemptId: evaluation.transitionedToEvaluated ? attemptId : null,
   }
 }
@@ -379,6 +390,7 @@ export async function gradeAttemptAnswer({ attemptId, marksAwarded, questionId, 
       })
 
       return {
+        certificateAttemptId: evaluation.certificateReconciliationRequired ? attemptId : null,
         notificationAttemptId: evaluation.transitionedToEvaluated ? attemptId : null,
         result: {
           answer: gradedAnswer,
@@ -388,8 +400,8 @@ export async function gradeAttemptAnswer({ attemptId, marksAwarded, questionId, 
       }
     })
 
-    if (outcome.notificationAttemptId) {
-      await publishResultNotificationSafely(outcome.notificationAttemptId)
+    if (outcome.notificationAttemptId || outcome.certificateAttemptId) {
+      await runEvaluationPostCommitEffectsSafely(outcome)
     }
 
     return outcome.result
