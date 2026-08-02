@@ -5,7 +5,7 @@ import { formatRoleName } from '../utils/formatRoleName.js'
 export function RoleLayout({ role }) {
   const { logout, user } = useAuth()
   const roleName = formatRoleName(role)
-  const contentWidth = role === 'admin' ? 'max-w-[90rem]' : 'max-w-6xl'
+  const contentWidth = ['admin', 'teacher'].includes(role) ? 'max-w-[90rem]' : 'max-w-6xl'
 
   return (
     <div className="min-h-screen bg-slate-950" data-route-boundary="role-protected">
