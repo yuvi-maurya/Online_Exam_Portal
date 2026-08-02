@@ -1,0 +1,115 @@
+import { useEffect, useRef } from 'react'
+
+export function SubjectDeleteDialog({ error, isPending, onCancel, onConfirm, subject }) {
+  const cancelButtonRef = useRef(null)
+  const dialogRef = useRef(null)
+
+  useEffect(() => {
+    if (!subject) {
+      return undefined
+    }
+
+    const previouslyFocused = document.activeElement
+    cancelButtonRef.current?.focus()
+
+    return () => {
+      if (previouslyFocused instanceof HTMLElement && previouslyFocused.isConnected) {
+        previouslyFocused.focus()
+      } else {
+        document.querySelector('[data-create-subject-button]')?.focus()
+      }
+    }
+  }, [subject])
+
+  if (!subject) {
+    return null
+  }
+
+  function handleKeyDown(event) {
+    if (event.key === 'Escape') {
+      if (!isPending) {
+        onCancel()
+      }
+
+      return
+    }
+
+    if (event.key !== 'Tab') {
+      return
+    }
+
+    const focusableElements = dialogRef.current?.querySelectorAll(
+      'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])',
+    )
+
+    if (!focusableElements?.length) {
+      event.preventDefault()
+      return
+    }
+
+    const firstElement = focusableElements[0]
+    const lastElement = focusableElements[focusableElements.length - 1]
+
+    if (event.shiftKey && document.activeElement === firstElement) {
+      event.preventDefault()
+      lastElement.focus()
+    } else if (!event.shiftKey && document.activeElement === lastElement) {
+      event.preventDefault()
+      firstElement.focus()
+    }
+  }
+
+  return (
+    <div
+      aria-describedby="delete-subject-description"
+      aria-labelledby="delete-subject-title"
+      aria-modal="true"
+      className="fixed inset-0 z-50 grid place-items-center bg-slate-950/80 p-4 backdrop-blur-sm"
+      role="dialog"
+      onKeyDown={handleKeyDown}
+      ref={dialogRef}
+    >
+      <div className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl shadow-black/40">
+        <p className="text-xs font-semibold tracking-[0.16em] text-rose-300 uppercase">
+          Confirm deletion
+        </p>
+        <h2 className="mt-2 text-xl font-semibold text-white" id="delete-subject-title">
+          Delete {subject.name}?
+        </h2>
+        <p className="mt-3 text-sm leading-6 text-slate-400" id="delete-subject-description">
+          This permanently removes the subject. Subjects linked to exams or questions cannot be
+          deleted.
+        </p>
+
+        {error ? (
+          <div
+            className="mt-4 rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-200"
+            role="alert"
+          >
+            {error}
+          </div>
+        ) : null}
+
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <button
+            className="rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:border-slate-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isPending}
+            onClick={onCancel}
+            ref={cancelButtonRef}
+            type="button"
+          >
+            Cancel
+          </button>
+          <button
+            className="rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isPending}
+            onClick={onConfirm}
+            type="button"
+          >
+            {isPending ? 'Deleting\u2026' : 'Delete subject'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
