@@ -2,10 +2,10 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { AdminLayout } from '../layouts/AdminLayout.jsx'
 import { PublicLayout } from '../layouts/PublicLayout.jsx'
 import { RoleLayout } from '../layouts/RoleLayout.jsx'
+import { StudentLayout } from '../layouts/StudentLayout.jsx'
 import { TeacherLayout } from '../layouts/TeacherLayout.jsx'
 import { HomePage } from '../pages/HomePage.jsx'
 import { NotFoundPage } from '../pages/NotFoundPage.jsx'
-import { RolePlaceholderPage } from '../pages/RolePlaceholderPage.jsx'
 import { AdminDashboardPage } from '../pages/admin/AdminDashboardPage.jsx'
 import { AdminReportsPage } from '../pages/admin/AdminReportsPage.jsx'
 import { AdminStudentsPage } from '../pages/admin/AdminStudentsPage.jsx'
@@ -16,6 +16,11 @@ import { LoginPage } from '../pages/auth/LoginPage.jsx'
 import { RegisterPage } from '../pages/auth/RegisterPage.jsx'
 import { ResetPasswordPage } from '../pages/auth/ResetPasswordPage.jsx'
 import { VerifyEmailPage } from '../pages/auth/VerifyEmailPage.jsx'
+import { StudentAttemptPage } from '../pages/student/StudentAttemptPage.jsx'
+import { StudentDashboardPage } from '../pages/student/StudentDashboardPage.jsx'
+import { StudentHistoryPage } from '../pages/student/StudentHistoryPage.jsx'
+import { StudentProfilePage } from '../pages/student/StudentProfilePage.jsx'
+import { StudentResultPage } from '../pages/student/StudentResultPage.jsx'
 import { TeacherDashboardPage } from '../pages/teacher/TeacherDashboardPage.jsx'
 import { TeacherExamBuilderPage } from '../pages/teacher/TeacherExamBuilderPage.jsx'
 import { TeacherExamReportPage } from '../pages/teacher/TeacherExamReportPage.jsx'
@@ -24,7 +29,6 @@ import { TeacherGradingPage } from '../pages/teacher/TeacherGradingPage.jsx'
 import { TeacherQuestionsPage } from '../pages/teacher/TeacherQuestionsPage.jsx'
 import { TeacherReportsPage } from '../pages/teacher/TeacherReportsPage.jsx'
 import { ProtectedRoute } from './ProtectedRoute.jsx'
-import { roleRouteGroups } from './routeGroups.js'
 
 export function AppRoutes() {
   return (
@@ -65,15 +69,17 @@ export function AppRoutes() {
           </Route>
         </Route>
 
-        {roleRouteGroups
-          .filter(({ role }) => !['admin', 'teacher'].includes(role))
-          .map(({ path, role }) => (
-            <Route key={role} element={<ProtectedRoute allowedRoles={[role]} />} path={path}>
-              <Route element={<RoleLayout role={role} />}>
-                <Route index element={<RolePlaceholderPage />} />
-              </Route>
+        <Route element={<ProtectedRoute allowedRoles={['student']} />} path="/student">
+          <Route element={<RoleLayout role="student" />}>
+            <Route element={<StudentLayout />}>
+              <Route index element={<StudentDashboardPage />} />
+              <Route path="history" element={<StudentHistoryPage />} />
+              <Route path="profile" element={<StudentProfilePage />} />
+              <Route path="attempts/:id" element={<StudentAttemptPage />} />
+              <Route path="attempts/:id/result" element={<StudentResultPage />} />
             </Route>
-          ))}
+          </Route>
+        </Route>
 
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

@@ -11,6 +11,7 @@ import {
   removeQuestionOption,
   validateQuestionValues,
 } from '../../../utils/teacherQuestionValidation.js'
+import { formatSubjectLabel } from '../../../utils/teacherSubject.js'
 
 const inputClassName =
   'focus:border-brand-400 focus:ring-brand-500/20 w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3.5 py-3 text-sm text-white transition outline-none placeholder:text-slate-600 focus:ring-4 disabled:cursor-not-allowed disabled:opacity-60'
@@ -154,12 +155,16 @@ export function QuestionForm({
   onClearError,
   onSubmit,
   question,
-  subjectIds = [],
+  subjects = [],
+  subjectsLoading = false,
+  subjectsUnavailable = false,
 }) {
   const [values, setValues] = useState(() => getInitialQuestionValues(question))
   const [fieldErrors, setFieldErrors] = useState({})
   const isEditing = mode === 'edit'
   const isChoice = CHOICE_QUESTION_TYPES.has(values.type)
+  const subjectSelectionDisabled =
+    isPending || subjectsLoading || subjectsUnavailable || subjects.length === 0
 
   function clearFieldError(field) {
     setFieldErrors((current) => ({ ...current, [field]: '' }))
@@ -305,26 +310,32 @@ export function QuestionForm({
         </div>
 
         <div>
-          <FieldLabel htmlFor={`${mode}-question-subject`}>Subject ID</FieldLabel>
-          <input
+          <FieldLabel htmlFor={`${mode}-question-subject`}>Subject</FieldLabel>
+          <select
             aria-describedby={fieldErrors.subjectId ? `${mode}-question-subject-error` : undefined}
             aria-invalid={Boolean(fieldErrors.subjectId)}
-            autoComplete="off"
             className={inputClassName}
-            disabled={isPending}
+            disabled={subjectSelectionDisabled}
             id={`${mode}-question-subject`}
-            list={`${mode}-question-subjects`}
-            maxLength={100}
             name="subjectId"
             onChange={updateField}
-            placeholder="Subject record ID"
             value={values.subjectId}
-          />
-          <datalist id={`${mode}-question-subjects`}>
-            {subjectIds.map((subjectId) => (
-              <option key={subjectId} value={subjectId} />
+          >
+            <option value="">
+              {subjectsLoading
+                ? 'Loading subjects…'
+                : subjectsUnavailable
+                  ? 'Subjects unavailable'
+                  : subjects.length === 0
+                    ? 'No subjects available'
+                    : 'Choose a subject'}
+            </option>
+            {subjects.map((subject) => (
+              <option key={subject.id} value={subject.id}>
+                {formatSubjectLabel(subject)}
+              </option>
             ))}
-          </datalist>
+          </select>
           <FieldError id={`${mode}-question-subject-error`}>{fieldErrors.subjectId}</FieldError>
         </div>
 
@@ -414,7 +425,7 @@ export function QuestionForm({
         </button>
         <button
           className="bg-brand-500 hover:bg-brand-400 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={isPending}
+          disabled={subjectSelectionDisabled}
           type="submit"
         >
           {isPending

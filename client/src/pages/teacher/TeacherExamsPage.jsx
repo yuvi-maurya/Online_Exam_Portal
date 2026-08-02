@@ -9,11 +9,12 @@ import {
   createTeacherExam,
   deleteTeacherExam,
   listTeacherExams,
-  listTeacherQuestions,
+  listTeacherSubjects,
   teacherQueryKeys,
 } from '../../services/teacherApi.js'
 import { getApiErrorMessage } from '../../services/apiClient.js'
 import { formatExamType } from '../../utils/teacherExamValidation.js'
+import { formatSubjectLabel } from '../../utils/teacherSubject.js'
 
 const filterClassName =
   'rounded-xl border border-slate-700 bg-slate-950/70 px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15'
@@ -50,9 +51,9 @@ export function TeacherExamsPage() {
     queryFn: listTeacherExams,
     queryKey: teacherQueryKeys.exams,
   })
-  const subjectSuggestionsQuery = useQuery({
-    queryFn: () => listTeacherQuestions({ limit: 100, page: 1 }),
-    queryKey: teacherQueryKeys.questions({ limit: 100, page: 1 }),
+  const subjectsQuery = useQuery({
+    queryFn: listTeacherSubjects,
+    queryKey: teacherQueryKeys.subjects,
   })
 
   const createMutation = useMutation({
@@ -92,16 +93,17 @@ export function TeacherExamsPage() {
     },
   })
 
-  const subjectIds = useMemo(() => {
-    const identifiers = new Set()
-
-    for (const exam of examsQuery.data ?? []) identifiers.add(exam.subjectId)
-    for (const question of subjectSuggestionsQuery.data?.questions ?? []) {
-      identifiers.add(question.subjectId)
-    }
-
-    return [...identifiers].filter(Boolean).sort()
-  }, [examsQuery.data, subjectSuggestionsQuery.data])
+  const subjects = useMemo(
+    () =>
+      [...(subjectsQuery.data ?? [])].sort((left, right) =>
+        formatSubjectLabel(left).localeCompare(formatSubjectLabel(right)),
+      ),
+    [subjectsQuery.data],
+  )
+  const subjectLabelsById = useMemo(
+    () => new Map(subjects.map((subject) => [subject.id, formatSubjectLabel(subject)])),
+    [subjects],
+  )
 
   const exams = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase()
@@ -109,12 +111,13 @@ export function TeacherExamsPage() {
     return (examsQuery.data ?? []).filter((exam) => {
       if (status && exam.status !== status) return false
       if (!normalizedSearch) return true
+      const subjectName = subjectLabelsById.get(exam.subjectId) ?? ''
       return (
         exam.title.toLowerCase().includes(normalizedSearch) ||
-        exam.subjectId.toLowerCase().includes(normalizedSearch)
+        subjectName.toLowerCase().includes(normalizedSearch)
       )
     })
-  }, [examsQuery.data, search, status])
+  }, [examsQuery.data, search, status, subjectLabelsById])
 
   const statusOptions = useMemo(
     () => [...new Set((examsQuery.data ?? []).map((exam) => exam.status))].sort(),
@@ -168,7 +171,12 @@ export function TeacherExamsPage() {
         </div>
         <button
           className="bg-brand-500 hover:bg-brand-400 shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={createMutation.isPending}
+          disabled={
+            createMutation.isPending ||
+            subjectsQuery.isPending ||
+            subjectsQuery.isError ||
+            !subjects.length
+          }
           onClick={startCreating}
           type="button"
         >
@@ -193,6 +201,31 @@ export function TeacherExamsPage() {
         </div>
       ) : null}
 
+      {subjectsQuery.isError ? (
+        <div
+          className="mt-7 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100"
+          role="alert"
+        >
+          <span>
+            {getApiErrorMessage(subjectsQuery.error, 'Unable to load the available subjects.')}
+          </span>
+          <button
+            className="rounded-lg border border-rose-400/30 px-3 py-1.5 text-xs font-semibold transition hover:bg-rose-500/15"
+            onClick={() => subjectsQuery.refetch()}
+            type="button"
+          >
+            Retry
+          </button>
+        </div>
+      ) : subjectsQuery.isSuccess && subjects.length === 0 ? (
+        <p
+          className="mt-7 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
+          role="status"
+        >
+          No subjects are available yet. Ask an administrator to create one before adding an exam.
+        </p>
+      ) : null}
+
       {isCreating ? (
         <section className="mt-7 rounded-2xl border border-slate-800 bg-slate-900/55 p-5 sm:p-6">
           <div className="mb-5">
@@ -201,15 +234,6 @@ export function TeacherExamsPage() {
               Scheduling and question attachment happen in the builder after the draft is saved.
             </p>
           </div>
-          {subjectSuggestionsQuery.isError ? (
-            <p
-              className="mb-4 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
-              role="status"
-            >
-              Question-based subject suggestions are unavailable. You can still enter a subject ID
-              manually.
-            </p>
-          ) : null}
           <ExamCreateForm
             error={formError}
             isPending={createMutation.isPending}
@@ -218,7 +242,9 @@ export function TeacherExamsPage() {
             }}
             onClearError={() => setFormError('')}
             onSubmit={(payload) => createMutation.mutate(payload)}
-            subjectIds={subjectIds}
+            subjects={subjects}
+            subjectsLoading={subjectsQuery.isPending}
+            subjectsUnavailable={subjectsQuery.isError}
           />
         </section>
       ) : null}
@@ -237,7 +263,7 @@ export function TeacherExamsPage() {
               <input
                 className={`mt-1.5 ${filterClassName}`}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Title or subject ID"
+                placeholder="Title or subject name"
                 type="search"
                 value={search}
               />
@@ -282,6 +308,7 @@ export function TeacherExamsPage() {
               mutationTarget={mutationTarget}
               onArchive={archiveExam}
               onDelete={deleteExam}
+              subjectLabelsById={subjectLabelsById}
             />
           )}
         </div>

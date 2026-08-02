@@ -12,6 +12,7 @@ import {
   detachExamQuestion,
   getTeacherExam,
   listTeacherQuestions,
+  listTeacherSubjects,
   publishTeacherExam,
   scheduleTeacherExam,
   teacherQueryKeys,
@@ -24,6 +25,7 @@ import {
   formatDateTime,
   formatExamType,
 } from '../../utils/teacherExamValidation.js'
+import { formatSubjectLabel } from '../../utils/teacherSubject.js'
 
 async function listAllSubjectQuestions(subjectId) {
   const firstPage = await listTeacherQuestions({ limit: 100, page: 1, subjectId })
@@ -75,6 +77,11 @@ export function TeacherExamBuilderPage() {
   })
   const exam = examQuery.data
   useDocumentTitle(exam ? `${exam.title} builder` : 'Exam builder')
+
+  const subjectsQuery = useQuery({
+    queryFn: listTeacherSubjects,
+    queryKey: teacherQueryKeys.subjects,
+  })
 
   const questionsQuery = useQuery({
     enabled: Boolean(exam?.subjectId && exam.status === 'DRAFT'),
@@ -163,6 +170,11 @@ export function TeacherExamBuilderPage() {
   })
 
   const attachedQuestions = [...(exam?.questions ?? [])].sort((a, b) => a.order - b.order)
+  const subjects = [...(subjectsQuery.data ?? [])].sort((left, right) =>
+    formatSubjectLabel(left).localeCompare(formatSubjectLabel(right)),
+  )
+  const selectedSubject = subjects.find((subject) => subject.id === exam?.subjectId)
+  const subjectLabel = selectedSubject ? formatSubjectLabel(selectedSubject) : ''
   const attachedIds = new Set(attachedQuestions.map((attachment) => attachment.questionId))
   const availableQuestions = (questionsQuery.data ?? []).filter(
     (question) => !attachedIds.has(question.id),
@@ -284,7 +296,8 @@ export function TeacherExamBuilderPage() {
             {exam.title}
           </h1>
           <p className="mt-3 text-sm text-slate-400">
-            {formatExamType(exam.type)} · Subject {exam.subjectId}
+            {formatExamType(exam.type)} ·{' '}
+            {subjectsQuery.isPending ? 'Loading subject…' : subjectLabel || 'Subject unavailable'}
           </p>
         </div>
         <Link
@@ -360,6 +373,26 @@ export function TeacherExamBuilderPage() {
         </div>
         {showSettingsForm ? (
           <div className="mt-5 border-t border-slate-800 pt-5">
+            {subjectsQuery.isError ? (
+              <div
+                className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100"
+                role="alert"
+              >
+                <span>
+                  {getApiErrorMessage(
+                    subjectsQuery.error,
+                    'Unable to load the available subjects.',
+                  )}
+                </span>
+                <button
+                  className="rounded-lg border border-rose-400/30 px-3 py-1.5 text-xs font-semibold transition hover:bg-rose-500/15"
+                  onClick={() => subjectsQuery.refetch()}
+                  type="button"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : null}
             <ExamCreateForm
               disabled={builderPending || schedulePending || lifecyclePending}
               error={settingsError}
@@ -379,7 +412,9 @@ export function TeacherExamBuilderPage() {
                 setNotice('')
                 updateExamMutation.mutate(payload)
               }}
-              subjectIds={[exam.subjectId]}
+              subjects={subjects}
+              subjectsLoading={subjectsQuery.isPending}
+              subjectsUnavailable={subjectsQuery.isError}
             />
           </div>
         ) : null}

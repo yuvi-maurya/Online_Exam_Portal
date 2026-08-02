@@ -18,6 +18,7 @@ export const teacherQueryKeys = Object.freeze({
     return ['teacher', 'questions', filters]
   },
   questionsRoot: ['teacher', 'questions'],
+  subjects: ['teacher', 'subjects'],
 })
 
 function getResponseData(response) {
@@ -49,6 +50,10 @@ export async function listTeacherQuestions({
 } = {}) {
   const query = buildQuery({ difficulty, limit, page, subjectId, type })
   return getResponseData(await apiClient.get(`/teacher/questions?${query}`))
+}
+
+export async function listTeacherSubjects() {
+  return getResponseData(await apiClient.get('/teacher/subjects')).subjects
 }
 
 export async function getTeacherQuestion(id) {

@@ -22,11 +22,14 @@ import {
   updateQuestion,
 } from '../controllers/teacherQuestionController.js'
 import { getExamReport } from '../controllers/teacherReportController.js'
+import { listSubjects } from '../controllers/subjectController.js'
 import { requireAuth, requireRole } from '../middlewares/auth.js'
 
 const teacherRouter = Router()
 
 teacherRouter.use(requireAuth, requireRole(Role.TEACHER))
+
+teacherRouter.get('/subjects', listSubjects)
 
 teacherRouter.post('/questions', createQuestion)
 teacherRouter.get('/questions', listQuestions)

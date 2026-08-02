@@ -62,7 +62,7 @@ export function validateExamForm(values) {
   }
 
   if (!subjectId) {
-    return { error: 'A subject ID is required.' }
+    return { error: 'Choose a subject.' }
   }
 
   if (!EXAM_TYPES.includes(values.type)) {

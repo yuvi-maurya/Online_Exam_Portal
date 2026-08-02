@@ -2,6 +2,7 @@ import { AppError } from './AppError.js'
 
 const MAX_RESOURCE_ID_LENGTH = 100
 const MAX_ANSWER_TEXT_LENGTH = 100_000
+const ATTEMPT_VIOLATION_TYPES = new Set(['FULLSCREEN_EXIT', 'TAB_SWITCH'])
 
 function validationError(message, field) {
   return new AppError(message, 400, 'VALIDATION_ERROR', { field })
@@ -69,4 +70,15 @@ export function validateStudentAnswer(body) {
   }
 
   return { answerText, questionId, selectedOptionId }
+}
+
+export function validateAttemptViolation(body) {
+  assertObject(body)
+  assertAllowedFields(body, new Set(['type']))
+
+  if (typeof body.type !== 'string' || !ATTEMPT_VIOLATION_TYPES.has(body.type)) {
+    throw validationError('type must be TAB_SWITCH or FULLSCREEN_EXIT', 'type')
+  }
+
+  return { type: body.type }
 }

@@ -117,8 +117,10 @@ export function validateQuestionValues(values) {
     errors.difficulty = 'Choose a valid difficulty.'
   }
 
-  if (!subjectId || subjectId.length > MAX_SUBJECT_ID_LENGTH) {
-    errors.subjectId = `Enter a subject ID of at most ${MAX_SUBJECT_ID_LENGTH} characters.`
+  if (!subjectId) {
+    errors.subjectId = 'Choose a subject.'
+  } else if (subjectId.length > MAX_SUBJECT_ID_LENGTH) {
+    errors.subjectId = 'The selected subject is invalid.'
   }
 
   if (!Number.isInteger(marks) || marks < 1 || marks > MAX_MARKS) {

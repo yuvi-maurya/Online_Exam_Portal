@@ -77,6 +77,7 @@ export function QuestionTable({
   onPageChange,
   pagination,
   questions,
+  subjectLabelsById = new Map(),
 }) {
   return (
     <div className="overflow-hidden rounded-xl border border-slate-800">
@@ -129,8 +130,8 @@ export function QuestionTable({
                         <QuestionAnswer question={question} />
                       </p>
                     </th>
-                    <td className="px-4 py-4 font-mono text-xs whitespace-nowrap text-slate-400">
-                      {question.subjectId}
+                    <td className="px-4 py-4 whitespace-nowrap text-slate-400">
+                      {subjectLabelsById.get(question.subjectId) ?? 'Unknown subject'}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-slate-400">
                       {formatLabel(question.type)}

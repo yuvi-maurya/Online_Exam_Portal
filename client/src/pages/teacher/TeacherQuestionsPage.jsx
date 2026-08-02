@@ -9,11 +9,12 @@ import { ApiError, getApiErrorMessage } from '../../services/apiClient.js'
 import {
   createTeacherQuestion,
   deleteTeacherQuestion,
-  listTeacherExams,
   listTeacherQuestions,
+  listTeacherSubjects,
   teacherQueryKeys,
   updateTeacherQuestion,
 } from '../../services/teacherApi.js'
+import { formatSubjectLabel } from '../../utils/teacherSubject.js'
 
 const PAGE_SIZE = 10
 const SEARCH_FETCH_SIZE = 100
@@ -112,13 +113,9 @@ export function TeacherQuestionsPage() {
         : listTeacherQuestions({ ...serverFilters, limit: PAGE_SIZE, page }),
     queryKey: teacherQueryKeys.questions(queryFilters),
   })
-  const subjectSuggestionsQuery = useQuery({
-    queryFn: () => listTeacherQuestions({ limit: SEARCH_FETCH_SIZE, page: 1 }),
-    queryKey: teacherQueryKeys.questions({ limit: SEARCH_FETCH_SIZE, page: 1 }),
-  })
-  const examsQuery = useQuery({
-    queryFn: listTeacherExams,
-    queryKey: teacherQueryKeys.exams,
+  const subjectsQuery = useQuery({
+    queryFn: listTeacherSubjects,
+    queryKey: teacherQueryKeys.subjects,
   })
 
   const sourceQuestions = questionsQuery.data?.questions ?? []
@@ -138,16 +135,12 @@ export function TeacherQuestionsPage() {
         totalPages: Math.ceil(matchedQuestions.length / PAGE_SIZE),
       }
     : questionsQuery.data?.pagination
-  const subjectIds = [
-    ...new Set(
-      [
-        ...sourceQuestions.map((question) => question.subjectId),
-        ...(subjectSuggestionsQuery.data?.questions ?? []).map((question) => question.subjectId),
-        ...(examsQuery.data ?? []).map((exam) => exam.subjectId),
-        editor?.question?.subjectId,
-      ].filter(Boolean),
-    ),
-  ].sort()
+  const subjects = [...(subjectsQuery.data ?? [])].sort((left, right) =>
+    formatSubjectLabel(left).localeCompare(formatSubjectLabel(right)),
+  )
+  const subjectLabelsById = new Map(
+    subjects.map((subject) => [subject.id, formatSubjectLabel(subject)]),
+  )
 
   async function refreshQuestions() {
     await queryClient.invalidateQueries({ queryKey: teacherQueryKeys.questionsRoot })
@@ -286,7 +279,9 @@ export function TeacherQuestionsPage() {
         </div>
         <button
           className="bg-brand-500 hover:bg-brand-400 shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={isMutating}
+          disabled={
+            isMutating || subjectsQuery.isPending || subjectsQuery.isError || !subjects.length
+          }
           onClick={openCreateForm}
           type="button"
         >
@@ -324,7 +319,9 @@ export function TeacherQuestionsPage() {
             onClearError={() => setFormError('')}
             onSubmit={submitQuestion}
             question={editor.question}
-            subjectIds={subjectIds}
+            subjects={subjects}
+            subjectsLoading={subjectsQuery.isPending}
+            subjectsUnavailable={subjectsQuery.isError}
           />
         </section>
       ) : null}
@@ -337,13 +334,29 @@ export function TeacherQuestionsPage() {
           </p>
         </div>
 
-        {subjectSuggestionsQuery.isError || examsQuery.isError ? (
+        {subjectsQuery.isError ? (
+          <div
+            className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100"
+            role="alert"
+          >
+            <span>
+              {getApiErrorMessage(subjectsQuery.error, 'Unable to load the available subjects.')}
+            </span>
+            <button
+              className="rounded-lg border border-rose-400/30 px-3 py-1.5 text-xs font-semibold transition hover:bg-rose-500/15"
+              onClick={() => subjectsQuery.refetch()}
+              type="button"
+            >
+              Retry
+            </button>
+          </div>
+        ) : subjectsQuery.isSuccess && subjects.length === 0 ? (
           <p
             className="mb-4 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
             role="status"
           >
-            Some subject ID suggestions are unavailable. Filters and forms still accept a subject ID
-            entered manually.
+            No subjects are available yet. Ask an administrator to create one before adding a
+            question.
           </p>
         ) : null}
 
@@ -354,7 +367,9 @@ export function TeacherQuestionsPage() {
           onSearch={applySearch}
           searchDraft={searchDraft}
           setSearchDraft={setSearchDraft}
-          subjectIds={subjectIds}
+          subjects={subjects}
+          subjectsLoading={subjectsQuery.isPending}
+          subjectsUnavailable={subjectsQuery.isError}
         />
 
         <div className="mt-6">
@@ -369,6 +384,7 @@ export function TeacherQuestionsPage() {
               onPageChange={setPage}
               pagination={pagination}
               questions={visibleQuestions}
+              subjectLabelsById={subjectLabelsById}
             />
           )}
         </div>

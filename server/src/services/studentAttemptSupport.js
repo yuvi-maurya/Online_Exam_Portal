@@ -5,13 +5,14 @@ import { runSerializableTransaction } from '../utils/prismaTransactions.js'
 import { evaluateSubmittedAttempt } from './attemptEvaluationService.js'
 
 export const ATTEMPT_STATE_SELECT = {
-  exam: { select: { durationMinutes: true } },
+  exam: { select: { durationMinutes: true, fullScreenRequired: true, tabSwitchLimit: true } },
   examId: true,
   id: true,
   startedAt: true,
   status: true,
   studentId: true,
   submittedAt: true,
+  tabSwitchCount: true,
   timeTakenSeconds: true,
 }
 
@@ -73,6 +74,7 @@ export const STUDENT_ATTEMPT_VIEW_SELECT = {
   status: true,
   studentId: true,
   submittedAt: true,
+  tabSwitchCount: true,
   timeTakenSeconds: true,
 }
 
@@ -319,6 +321,7 @@ export function toStudentAttemptView(attempt) {
     startedAt: attempt.startedAt,
     status: attempt.status,
     submittedAt: attempt.submittedAt,
+    tabSwitchCount: attempt.tabSwitchCount,
     timeTakenSeconds: attempt.timeTakenSeconds,
   }
 }

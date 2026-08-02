@@ -1,4 +1,5 @@
 import { QUESTION_DIFFICULTIES, QUESTION_TYPES } from '../../../utils/teacherQuestionValidation.js'
+import { formatSubjectLabel } from '../../../utils/teacherSubject.js'
 
 const controlClassName =
   'focus:border-brand-400 focus:ring-brand-500/20 w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3.5 py-2.5 text-sm text-white transition outline-none placeholder:text-slate-600 focus:ring-4'
@@ -10,7 +11,9 @@ export function QuestionFilters({
   onSearch,
   searchDraft,
   setSearchDraft,
-  subjectIds,
+  subjects,
+  subjectsLoading = false,
+  subjectsUnavailable = false,
 }) {
   const hasFilters = Boolean(
     filters.difficulty || filters.search || filters.subjectId || filters.type,
@@ -52,23 +55,28 @@ export function QuestionFilters({
             className="mb-1.5 block text-xs font-medium tracking-wide text-slate-400 uppercase"
             htmlFor="teacher-question-subject-filter"
           >
-            Subject ID
+            Subject
           </label>
-          <input
-            autoComplete="off"
+          <select
             className={controlClassName}
+            disabled={subjectsLoading || subjectsUnavailable}
             id="teacher-question-subject-filter"
-            list="teacher-question-filter-subjects"
-            maxLength={100}
             onChange={(event) => onFilterChange('subjectId', event.target.value)}
-            placeholder="All subjects"
             value={filters.subjectId}
-          />
-          <datalist id="teacher-question-filter-subjects">
-            {subjectIds.map((subjectId) => (
-              <option key={subjectId} value={subjectId} />
+          >
+            <option value="">
+              {subjectsLoading
+                ? 'Loading subjects…'
+                : subjectsUnavailable
+                  ? 'Subjects unavailable'
+                  : 'All subjects'}
+            </option>
+            {subjects.map((subject) => (
+              <option key={subject.id} value={subject.id}>
+                {formatSubjectLabel(subject)}
+              </option>
             ))}
-          </datalist>
+          </select>
         </div>
 
         <div>

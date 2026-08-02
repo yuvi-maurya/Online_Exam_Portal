@@ -15,7 +15,14 @@ function StatusBadge({ status }) {
   )
 }
 
-export function ExamList({ exams, hasFilters = false, mutationTarget, onArchive, onDelete }) {
+export function ExamList({
+  exams,
+  hasFilters = false,
+  mutationTarget,
+  onArchive,
+  onDelete,
+  subjectLabelsById = new Map(),
+}) {
   if (exams.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-slate-700 px-5 py-12 text-center">
@@ -49,7 +56,9 @@ export function ExamList({ exams, hasFilters = false, mutationTarget, onArchive,
                   {formatExamType(exam.type)}
                 </p>
                 <h3 className="mt-1 text-lg font-semibold break-words text-white">{exam.title}</h3>
-                <p className="mt-1 text-xs break-all text-slate-600">Subject: {exam.subjectId}</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Subject: {subjectLabelsById.get(exam.subjectId) ?? 'Unknown subject'}
+                </p>
               </div>
               <StatusBadge status={exam.status} />
             </div>

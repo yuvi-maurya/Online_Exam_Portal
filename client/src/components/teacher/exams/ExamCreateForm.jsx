@@ -5,6 +5,7 @@ import {
   getExamFormValues,
   validateExamForm,
 } from '../../../utils/teacherExamValidation.js'
+import { formatSubjectLabel } from '../../../utils/teacherSubject.js'
 
 const inputClassName =
   'mt-2 w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 disabled:cursor-not-allowed disabled:opacity-60'
@@ -41,12 +42,16 @@ export function ExamCreateForm({
   onCancel,
   onClearError,
   onSubmit,
-  subjectIds,
+  subjects = [],
+  subjectsLoading = false,
+  subjectsUnavailable = false,
 }) {
   const [values, setValues] = useState(() => getExamFormValues(exam))
   const [validationError, setValidationError] = useState('')
   const formDisabled = disabled || isPending
   const isEditing = mode === 'edit'
+  const subjectSelectionDisabled =
+    formDisabled || subjectsLoading || subjectsUnavailable || subjects.length === 0
 
   function updateField(event) {
     const { checked, name, type, value } = event.target
@@ -98,26 +103,30 @@ export function ExamCreateForm({
         </label>
 
         <label className="text-sm font-medium text-slate-200">
-          Subject ID
-          <input
-            autoComplete="off"
+          Subject
+          <select
             className={inputClassName}
-            disabled={formDisabled}
-            list="teacher-subject-id-options"
+            disabled={subjectSelectionDisabled}
             name="subjectId"
             onChange={updateField}
-            placeholder="Paste the subject ID"
             required
             value={values.subjectId}
-          />
-          <span className="mt-1.5 block text-xs font-normal text-slate-500">
-            Use the ID of an existing subject assigned by an administrator.
-          </span>
-          <datalist id="teacher-subject-id-options">
-            {subjectIds.map((subjectId) => (
-              <option key={subjectId} value={subjectId} />
+          >
+            <option value="">
+              {subjectsLoading
+                ? 'Loading subjects…'
+                : subjectsUnavailable
+                  ? 'Subjects unavailable'
+                  : subjects.length === 0
+                    ? 'No subjects available'
+                    : 'Choose a subject'}
+            </option>
+            {subjects.map((subject) => (
+              <option key={subject.id} value={subject.id}>
+                {formatSubjectLabel(subject)}
+              </option>
             ))}
-          </datalist>
+          </select>
         </label>
 
         <label className="text-sm font-medium text-slate-200">
@@ -229,7 +238,7 @@ export function ExamCreateForm({
         </button>
         <button
           className="bg-brand-500 hover:bg-brand-400 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={formDisabled}
+          disabled={subjectSelectionDisabled}
           type="submit"
         >
           {isPending
