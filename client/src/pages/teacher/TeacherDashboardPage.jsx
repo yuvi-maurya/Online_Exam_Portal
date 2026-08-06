@@ -1,5 +1,6 @@
 import { useQueries, useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   TeacherCardSkeleton,
   TeacherPageHeader,
@@ -10,6 +11,7 @@ import {
   formatExamStatus,
 } from '../../components/teacher/shared/index.js'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js'
+import i18n from '../../i18n/index.js'
 import { getApiErrorMessage } from '../../services/apiClient.js'
 import {
   getPendingGrading,
@@ -22,11 +24,14 @@ const EXAM_STATUSES = ['DRAFT', 'PUBLISHED', 'ONGOING', 'COMPLETED', 'ARCHIVED']
 const integerFormatter = new Intl.NumberFormat()
 
 function formatInteger(value) {
-  return Number.isFinite(Number(value)) ? integerFormatter.format(Number(value)) : '—'
+  return Number.isFinite(Number(value))
+    ? integerFormatter.format(Number(value))
+    : i18n.t('common.notAvailable')
 }
 
 export function TeacherDashboardPage() {
-  useDocumentTitle('Teacher dashboard')
+  const { t } = useTranslation()
+  useDocumentTitle(t('teacher.dashboard.title'))
 
   const questionCountQuery = useQuery({
     queryFn: () => listTeacherQuestions({ limit: 1, page: 1 }),
@@ -64,9 +69,9 @@ export function TeacherDashboardPage() {
   return (
     <main className="space-y-7 px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
       <TeacherPageHeader
-        description="Track your question bank, exam pipeline, and manual grading workload in one place."
-        eyebrow="Overview"
-        title="Teacher dashboard"
+        description={t('teacher.dashboard.description')}
+        eyebrow={t('teacher.dashboard.eyebrow')}
+        title={t('teacher.dashboard.title')}
       />
 
       {baseQueriesLoading ? <TeacherCardSkeleton /> : null}
@@ -74,51 +79,51 @@ export function TeacherDashboardPage() {
         <TeacherQueryError
           message={getApiErrorMessage(
             questionCountQuery.error,
-            'Your question count could not be loaded.',
+            t('teacher.dashboard.errors.questions'),
           )}
           onRetry={() => questionCountQuery.refetch()}
         />
       ) : null}
       {examsQuery.isError ? (
         <TeacherQueryError
-          message={getApiErrorMessage(examsQuery.error, 'Your exams could not be loaded.')}
+          message={getApiErrorMessage(examsQuery.error, t('teacher.dashboard.errors.exams'))}
           onRetry={() => examsQuery.refetch()}
         />
       ) : null}
 
       {canShowMetrics ? (
         <section
-          aria-label="Teacher workspace totals"
+          aria-label={t('teacher.dashboard.totalsAria')}
           className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
         >
           <TeacherSummaryCard
-            helper="Questions you own across all subjects"
-            label="Question bank"
+            helper={t('teacher.dashboard.questionsHelper')}
+            label={t('teacher.dashboard.questionBank')}
             value={formatInteger(questionCount)}
           />
           <TeacherSummaryCard
-            helper="Draft, scheduled, active, and archived"
-            label="Total exams"
+            helper={t('teacher.dashboard.examsHelper')}
+            label={t('teacher.dashboard.totalExams')}
             value={formatInteger(exams.length)}
           />
           <TeacherSummaryCard
             action={
               <Link
-                className="text-brand-400 inline-flex text-sm font-semibold transition hover:text-sky-300"
+                className="text-brand-700 hover:text-brand-600 dark:text-brand-400 inline-flex text-sm font-semibold transition dark:hover:text-sky-300"
                 to="/teacher/grading"
               >
-                Open grading queue →
+                {t('teacher.dashboard.openGrading')}
               </Link>
             }
             helper={
               pendingQueriesLoading
-                ? 'Checking each exam for review work…'
-                : 'Attempts with at least one answer awaiting a mark'
+                ? t('teacher.dashboard.checkingGrading')
+                : t('teacher.dashboard.pendingHelper')
             }
-            label="Pending grading"
+            label={t('teacher.dashboard.pendingGrading')}
             value={
               pendingQueriesLoading || pendingQueriesWithErrors.length > 0
-                ? '—'
+                ? t('common.notAvailable')
                 : formatInteger(pendingAttemptCount)
             }
           />
@@ -127,41 +132,48 @@ export function TeacherDashboardPage() {
 
       {pendingQueriesWithErrors.length > 0 ? (
         <TeacherQueryError
-          message={`${pendingQueriesWithErrors.length} grading ${
-            pendingQueriesWithErrors.length === 1 ? 'queue' : 'queues'
-          } could not be checked. The pending total is hidden until all queues load.`}
+          message={t('teacher.dashboard.errors.gradingQueues', {
+            count: pendingQueriesWithErrors.length,
+          })}
           onRetry={retryPendingQueries}
-          title="Some grading data is unavailable"
+          title={t('teacher.dashboard.errors.gradingTitle')}
         />
       ) : null}
 
       {examsQuery.isSuccess ? (
         <TeacherPanel
-          description="A snapshot of your exams at every stage of their lifecycle."
-          title="Exams by status"
+          description={t('teacher.dashboard.statusDescription')}
+          title={t('teacher.dashboard.statusTitle')}
         >
           {exams.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-slate-700 px-5 py-10 text-center">
-              <p className="text-sm text-slate-400">You have not created an exam yet.</p>
+            <div className="rounded-xl border border-dashed border-slate-300 px-5 py-10 text-center dark:border-slate-700">
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                {t('teacher.dashboard.noExams')}
+              </p>
               <Link
-                className="text-brand-400 mt-4 inline-flex text-sm font-semibold hover:text-sky-300"
+                className="text-brand-700 hover:text-brand-600 dark:text-brand-400 mt-4 inline-flex text-sm font-semibold dark:hover:text-sky-300"
                 to="/teacher/exams"
               >
-                Create your first exam
+                {t('teacher.dashboard.createFirstExam')}
               </Link>
             </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
               {EXAM_STATUSES.map((status) => (
                 <article
-                  className="rounded-xl border border-slate-800 bg-slate-950/45 p-4"
+                  className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/45"
                   key={status}
                 >
                   <TeacherStatusBadge status={status} />
-                  <p className="mt-4 text-2xl font-bold text-white">
+                  <p className="mt-4 text-2xl font-bold text-slate-950 dark:text-white">
                     {formatInteger(statusCounts[status])}
                   </p>
-                  <p className="mt-1 text-xs text-slate-500">{formatExamStatus(status)} exams</p>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    {t('teacher.dashboard.statusExamCount', {
+                      count: statusCounts[status],
+                      status: formatExamStatus(status),
+                    })}
+                  </p>
                 </article>
               ))}
             </div>

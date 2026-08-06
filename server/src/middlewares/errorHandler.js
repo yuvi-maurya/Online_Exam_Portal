@@ -1,6 +1,7 @@
 import { env } from '../config/env.js'
+import { logger } from '../config/logger.js'
 
-export function errorHandler(error, _request, response, _next) {
+export function errorHandler(error, request, response, _next) {
   const statusCode = error.statusCode ?? error.status ?? 500
   const isInternalError = statusCode >= 500
 
@@ -20,7 +21,17 @@ export function errorHandler(error, _request, response, _next) {
   }
 
   if (isInternalError) {
-    console.error(error)
+    const requestLog = request.log ?? logger
+
+    requestLog.error(
+      {
+        err: error,
+        method: request.method,
+        requestId: request.id,
+        statusCode,
+      },
+      'Request failed',
+    )
   }
 
   response.status(statusCode).json(payload)

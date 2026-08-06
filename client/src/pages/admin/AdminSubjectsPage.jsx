@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { AdminPageHeader, AdminPanel, AdminQueryError } from '../../components/admin/index.js'
 import { SubjectDeleteDialog } from '../../components/admin/subjects/SubjectDeleteDialog.jsx'
 import { SubjectForm } from '../../components/admin/subjects/SubjectForm.jsx'
@@ -14,18 +15,17 @@ import {
 } from '../../services/adminApi.js'
 import { ApiError, getApiErrorMessage } from '../../services/apiClient.js'
 
-const DEPENDENCY_ERROR_MESSAGE = "Can't delete \u2014 this subject has exams or questions."
-
-function getDeleteErrorMessage(error) {
+function getDeleteErrorMessage(error, t) {
   if (error instanceof ApiError && error.code === 'SUBJECT_HAS_DEPENDENCIES') {
-    return DEPENDENCY_ERROR_MESSAGE
+    return t('admin.subjects.errors.dependencies')
   }
 
-  return getApiErrorMessage(error, 'Unable to delete this subject.')
+  return getApiErrorMessage(error, t('admin.subjects.errors.delete'))
 }
 
 export function AdminSubjectsPage() {
-  useDocumentTitle('Manage subjects')
+  const { t } = useTranslation()
+  useDocumentTitle(t('admin.subjects.documentTitle'))
 
   const queryClient = useQueryClient()
   const [editor, setEditor] = useState(null)
@@ -50,37 +50,37 @@ export function AdminSubjectsPage() {
   const createMutation = useMutation({
     mutationFn: createSubject,
     onError: (error) => {
-      setFormError(getApiErrorMessage(error, 'Unable to create this subject.'))
+      setFormError(getApiErrorMessage(error, t('admin.subjects.errors.create')))
     },
     onSuccess: async (subject) => {
       await refreshSubjectData()
       setEditor(null)
-      setNotice(`${subject.name} was created successfully.`)
+      setNotice(t('admin.subjects.notices.created', { name: subject.name }))
     },
   })
 
   const updateMutation = useMutation({
     mutationFn: ({ id, payload }) => updateSubject(id, payload),
     onError: (error) => {
-      setFormError(getApiErrorMessage(error, 'Unable to save this subject.'))
+      setFormError(getApiErrorMessage(error, t('admin.subjects.errors.save')))
     },
     onSuccess: async (subject) => {
       await refreshSubjectData()
       setEditor(null)
-      setNotice(`${subject.name} was updated successfully.`)
+      setNotice(t('admin.subjects.notices.updated', { name: subject.name }))
     },
   })
 
   const deleteMutation = useMutation({
     mutationFn: deleteSubject,
     onError: (error) => {
-      setDeleteError(getDeleteErrorMessage(error))
+      setDeleteError(getDeleteErrorMessage(error, t))
     },
     onSuccess: async (subject) => {
       await refreshSubjectData()
       setDeleteTarget(null)
       setDeleteError('')
-      setNotice(`${subject.name} was deleted successfully.`)
+      setNotice(t('admin.subjects.notices.deleted', { name: subject.name }))
     },
   })
 
@@ -151,17 +151,17 @@ export function AdminSubjectsPage() {
             onClick={openCreateForm}
             type="button"
           >
-            Create subject
+            {t('admin.subjects.create')}
           </button>
         }
-        description="Create and maintain the subjects teachers use to organize questions and exams."
-        eyebrow="Academic setup"
-        title="Subjects"
+        description={t('admin.subjects.description')}
+        eyebrow={t('admin.subjects.eyebrow')}
+        title={t('common.subjects')}
       />
 
       {notice ? (
         <div
-          className="mt-7 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200"
+          className="mt-7 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-200"
           role="status"
         >
           {notice}
@@ -173,10 +173,14 @@ export function AdminSubjectsPage() {
           <AdminPanel
             description={
               editor.mode === 'edit'
-                ? 'Changes are reflected anywhere this subject is referenced.'
-                : 'The code is normalized to uppercase and must be unique.'
+                ? t('admin.subjects.form.editDescription')
+                : t('admin.subjects.form.createDescription')
             }
-            title={editor.mode === 'edit' ? `Edit ${editor.subject.name}` : 'Create a subject'}
+            title={
+              editor.mode === 'edit'
+                ? t('admin.subjects.form.editTitle', { name: editor.subject.name })
+                : t('admin.subjects.form.createTitle')
+            }
           >
             <SubjectForm
               error={formError}
@@ -194,12 +198,12 @@ export function AdminSubjectsPage() {
 
       <div className="mt-7">
         <AdminPanel
-          description="Subject codes are shown alongside their names for quick reference."
-          title="All subjects"
+          description={t('admin.subjects.listDescription')}
+          title={t('admin.subjects.allTitle')}
         >
           {subjectsQuery.isError ? (
             <AdminQueryError
-              message={getApiErrorMessage(subjectsQuery.error, 'Unable to load subjects.')}
+              message={getApiErrorMessage(subjectsQuery.error, t('admin.subjects.errors.load'))}
               onRetry={() => subjectsQuery.refetch()}
             />
           ) : (

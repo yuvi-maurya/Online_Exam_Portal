@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ExamCreateForm } from '../../components/teacher/exams/ExamCreateForm.jsx'
 import { ExamQuestionBuilder } from '../../components/teacher/exams/ExamQuestionBuilder.jsx'
@@ -20,12 +21,21 @@ import {
   updateTeacherExam,
 } from '../../services/teacherApi.js'
 import { ApiError, getApiErrorMessage } from '../../services/apiClient.js'
-import {
-  EXAM_STATUS_STYLES,
-  formatDateTime,
-  formatExamType,
-} from '../../utils/teacherExamValidation.js'
+import { formatDateTime, formatExamType } from '../../utils/teacherExamValidation.js'
 import { formatSubjectLabel } from '../../utils/teacherSubject.js'
+
+const STATUS_STYLES = {
+  ARCHIVED:
+    'border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-600 dark:bg-slate-700/45 dark:text-slate-300',
+  COMPLETED:
+    'border-violet-300 bg-violet-50 text-violet-700 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-200',
+  DRAFT:
+    'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200',
+  ONGOING:
+    'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200',
+  PUBLISHED:
+    'border-sky-300 bg-sky-50 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200',
+}
 
 async function listAllSubjectQuestions(subjectId) {
   const firstPage = await listTeacherQuestions({ limit: 100, page: 1, subjectId })
@@ -49,16 +59,22 @@ function getPublicationRequirements(error) {
 }
 
 function DetailSkeleton() {
+  const { t } = useTranslation()
+
   return (
-    <main className="px-4 py-8 sm:px-6 lg:px-8 lg:py-10" aria-label="Loading exam builder">
-      <div className="h-9 w-56 animate-pulse rounded-lg bg-slate-800" />
-      <div className="mt-8 h-52 animate-pulse rounded-2xl border border-slate-800 bg-slate-900/55" />
-      <div className="mt-6 h-96 animate-pulse rounded-2xl border border-slate-800 bg-slate-900/55" />
+    <main
+      className="px-4 py-8 sm:px-6 lg:px-8 lg:py-10"
+      aria-label={t('teacher.examBuilder.loading')}
+    >
+      <div className="h-9 w-56 animate-pulse rounded-lg bg-slate-200 dark:bg-slate-800" />
+      <div className="mt-8 h-52 animate-pulse rounded-2xl border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-900/55" />
+      <div className="mt-6 h-96 animate-pulse rounded-2xl border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-900/55" />
     </main>
   )
 }
 
 export function TeacherExamBuilderPage() {
+  const { t } = useTranslation()
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -76,7 +92,11 @@ export function TeacherExamBuilderPage() {
     queryKey: teacherQueryKeys.exam(id),
   })
   const exam = examQuery.data
-  useDocumentTitle(exam ? `${exam.title} builder` : 'Exam builder')
+  useDocumentTitle(
+    exam
+      ? t('teacher.examBuilder.documentTitleWithExam', { title: exam.title })
+      : t('teacher.examBuilder.title'),
+  )
 
   const subjectsQuery = useQuery({
     queryFn: listTeacherSubjects,
@@ -106,17 +126,18 @@ export function TeacherExamBuilderPage() {
   const attachMutation = useMutation({
     mutationFn: (attachment) => attachExamQuestions(id, [attachment]),
     onError: (error) => {
-      setBuilderError(getApiErrorMessage(error, 'Unable to attach this question.'))
+      setBuilderError(getApiErrorMessage(error, t('teacher.examBuilder.errors.attach')))
     },
-    onSuccess: (updatedExam) => syncExam(updatedExam, 'Question attached successfully.'),
+    onSuccess: (updatedExam) =>
+      syncExam(updatedExam, t('teacher.examBuilder.notices.questionAttached')),
   })
   const updateExamMutation = useMutation({
     mutationFn: (payload) => updateTeacherExam(id, payload),
     onError: (error) => {
-      setSettingsError(getApiErrorMessage(error, 'Unable to update these exam settings.'))
+      setSettingsError(getApiErrorMessage(error, t('teacher.examBuilder.errors.settings')))
     },
     onSuccess: async (updatedExam) => {
-      await syncExam(updatedExam, 'Exam settings updated successfully.')
+      await syncExam(updatedExam, t('teacher.examBuilder.notices.settingsUpdated'))
       setSettingsError('')
       setShowSettingsForm(false)
     },
@@ -124,43 +145,46 @@ export function TeacherExamBuilderPage() {
   const updateQuestionMutation = useMutation({
     mutationFn: ({ changes, questionId }) => updateAttachedQuestion(id, questionId, changes),
     onError: (error) => {
-      setBuilderError(getApiErrorMessage(error, 'Unable to update this attached question.'))
+      setBuilderError(getApiErrorMessage(error, t('teacher.examBuilder.errors.updateQuestion')))
     },
-    onSuccess: (updatedExam) => syncExam(updatedExam, 'Question marks and order updated.'),
+    onSuccess: (updatedExam) =>
+      syncExam(updatedExam, t('teacher.examBuilder.notices.questionUpdated')),
   })
   const detachMutation = useMutation({
     mutationFn: (questionId) => detachExamQuestion(id, questionId),
     onError: (error) => {
-      setBuilderError(getApiErrorMessage(error, 'Unable to remove this question.'))
+      setBuilderError(getApiErrorMessage(error, t('teacher.examBuilder.errors.removeQuestion')))
     },
-    onSuccess: (updatedExam) => syncExam(updatedExam, 'Question removed from the exam.'),
+    onSuccess: (updatedExam) =>
+      syncExam(updatedExam, t('teacher.examBuilder.notices.questionRemoved')),
   })
   const scheduleMutation = useMutation({
     mutationFn: (payload) => scheduleTeacherExam(id, payload),
     onError: (error) => {
-      setScheduleError(getApiErrorMessage(error, 'Unable to save this schedule.'))
+      setScheduleError(getApiErrorMessage(error, t('teacher.examBuilder.errors.schedule')))
     },
-    onSuccess: (updatedExam) => syncExam(updatedExam, 'Exam schedule saved.'),
+    onSuccess: (updatedExam) =>
+      syncExam(updatedExam, t('teacher.examBuilder.notices.scheduleSaved')),
   })
   const publishMutation = useMutation({
     mutationFn: () => publishTeacherExam(id),
     onError: (error) => {
-      setLifecycleError(getApiErrorMessage(error, 'Unable to publish this exam.'))
+      setLifecycleError(getApiErrorMessage(error, t('teacher.examBuilder.errors.publish')))
       setPublicationRequirements(getPublicationRequirements(error))
     },
-    onSuccess: (updatedExam) => syncExam(updatedExam, 'Exam published successfully.'),
+    onSuccess: (updatedExam) => syncExam(updatedExam, t('teacher.examBuilder.notices.published')),
   })
   const archiveMutation = useMutation({
     mutationFn: () => archiveTeacherExam(id),
     onError: (error) => {
-      setLifecycleError(getApiErrorMessage(error, 'Unable to archive this exam.'))
+      setLifecycleError(getApiErrorMessage(error, t('teacher.examBuilder.errors.archive')))
     },
-    onSuccess: (updatedExam) => syncExam(updatedExam, 'Exam archived successfully.'),
+    onSuccess: (updatedExam) => syncExam(updatedExam, t('teacher.examBuilder.notices.archived')),
   })
   const deleteMutation = useMutation({
     mutationFn: () => deleteTeacherExam(id),
     onError: (error) => {
-      setLifecycleError(getApiErrorMessage(error, 'Unable to delete this exam.'))
+      setLifecycleError(getApiErrorMessage(error, t('teacher.examBuilder.errors.delete')))
     },
     onSuccess: async () => {
       queryClient.removeQueries({ queryKey: teacherQueryKeys.exam(id) })
@@ -214,7 +238,7 @@ export function TeacherExamBuilderPage() {
   }
 
   function detachQuestion(attachment) {
-    if (!window.confirm('Remove this question from the exam?')) return
+    if (!window.confirm(t('teacher.examBuilder.confirmRemoveQuestion'))) return
     setBuilderError('')
     setNotice('')
     detachMutation.mutate(attachment.questionId)
@@ -226,13 +250,13 @@ export function TeacherExamBuilderPage() {
   }
 
   function archiveExam() {
-    if (!window.confirm(`Archive “${exam.title}”?`)) return
+    if (!window.confirm(t('teacher.examBuilder.confirmArchive', { title: exam.title }))) return
     resetFeedback()
     archiveMutation.mutate()
   }
 
   function deleteExam() {
-    if (!window.confirm(`Permanently delete the unused draft “${exam.title}”?`)) return
+    if (!window.confirm(t('teacher.exams.confirmDelete', { title: exam.title }))) return
     resetFeedback()
     deleteMutation.mutate()
   }
@@ -243,22 +267,27 @@ export function TeacherExamBuilderPage() {
     return (
       <main className="px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
         <Link
-          className="text-brand-400 hover:text-brand-300 text-sm font-semibold"
+          className="text-brand-700 hover:text-brand-600 dark:text-brand-400 dark:hover:text-brand-300 text-sm font-semibold"
           to="/teacher/exams"
         >
-          ← Back to exams
+          {t('teacher.examBuilder.backToExams')}
         </Link>
-        <div className="mt-6 rounded-2xl border border-rose-500/25 bg-rose-500/10 p-5" role="alert">
-          <p className="font-medium text-rose-100">Unable to open this exam</p>
-          <p className="mt-1 text-sm text-rose-200/75">
-            {getApiErrorMessage(examQuery.error, 'The exam could not be loaded.')}
+        <div
+          className="mt-6 rounded-2xl border border-rose-300 bg-rose-50 p-5 dark:border-rose-500/25 dark:bg-rose-500/10"
+          role="alert"
+        >
+          <p className="font-medium text-rose-800 dark:text-rose-100">
+            {t('teacher.examBuilder.errors.openTitle')}
+          </p>
+          <p className="mt-1 text-sm text-rose-700 dark:text-rose-200/75">
+            {getApiErrorMessage(examQuery.error, t('teacher.examBuilder.errors.load'))}
           </p>
           <button
-            className="mt-4 rounded-lg border border-rose-400/30 px-3 py-2 text-sm font-semibold text-rose-100 hover:bg-rose-500/10"
+            className="mt-4 rounded-lg border border-rose-400 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100 dark:border-rose-400/30 dark:text-rose-100 dark:hover:bg-rose-500/10"
             onClick={() => examQuery.refetch()}
             type="button"
           >
-            Try again
+            {t('common.tryAgain')}
           </button>
         </div>
       </main>
@@ -269,22 +298,23 @@ export function TeacherExamBuilderPage() {
   const canDelete = isDraft && Number(exam.attemptCount ?? 0) === 0
   const canArchive = exam.status === 'PUBLISHED'
   const statusStyle =
-    EXAM_STATUS_STYLES[exam.status] ?? 'border-slate-700 bg-slate-800 text-slate-300'
+    STATUS_STYLES[exam.status] ??
+    'border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
 
   return (
     <main className="px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
       <Link
-        className="text-brand-400 hover:text-brand-300 text-sm font-semibold"
+        className="text-brand-700 hover:text-brand-600 dark:text-brand-400 dark:hover:text-brand-300 text-sm font-semibold"
         to="/teacher/exams"
       >
-        ← Back to exams
+        {t('teacher.examBuilder.backToExams')}
       </Link>
 
       <header className="mt-5 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-3xl">
           <div className="flex flex-wrap items-center gap-3">
-            <p className="text-brand-400 text-xs font-semibold tracking-[0.18em] uppercase">
-              Exam builder
+            <p className="text-brand-700 dark:text-brand-400 text-xs font-semibold tracking-[0.18em] uppercase">
+              {t('teacher.examBuilder.title')}
             </p>
             <span
               className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${statusStyle}`}
@@ -292,43 +322,47 @@ export function TeacherExamBuilderPage() {
               {formatExamType(exam.status)}
             </span>
           </div>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl dark:text-white">
             {exam.title}
           </h1>
-          <p className="mt-3 text-sm text-slate-400">
+          <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
             {formatExamType(exam.type)} ·{' '}
-            {subjectsQuery.isPending ? 'Loading subject…' : subjectLabel || 'Subject unavailable'}
+            {subjectsQuery.isPending
+              ? t('common.loadingSubject')
+              : subjectLabel || t('common.subjectUnavailable')}
           </p>
         </div>
         <Link
-          className="shrink-0 rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:bg-slate-800"
+          className="shrink-0 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
           to={`/teacher/exams/${exam.id}/report`}
         >
-          View report
+          {t('common.viewReport')}
         </Link>
       </header>
 
       {notice ? (
         <div
-          className="mt-7 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
+          className="mt-7 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-100"
           role="status"
         >
           {notice}
         </div>
       ) : null}
 
-      <section className="mt-7 rounded-2xl border border-slate-800 bg-slate-900/55 p-5 sm:p-6">
+      <section className="mt-7 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900/55">
         {isDraft ? (
           <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-white">Exam settings</h2>
-              <p className="mt-1 text-sm text-slate-400">
-                Update delivery, scoring, and security settings while this exam is a draft.
+              <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+                {t('teacher.examBuilder.settings.title')}
+              </h2>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                {t('teacher.examBuilder.settings.description')}
               </p>
             </div>
             {!showSettingsForm ? (
               <button
-                className="rounded-lg border border-slate-700 px-3 py-2 text-sm font-semibold text-slate-200 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                 disabled={lifecycleActionsDisabled}
                 onClick={() => {
                   setSettingsError('')
@@ -336,60 +370,71 @@ export function TeacherExamBuilderPage() {
                 }}
                 type="button"
               >
-                Edit settings
+                {t('teacher.examBuilder.settings.edit')}
               </button>
             ) : null}
           </div>
         ) : null}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <dl className="rounded-xl bg-slate-950/50 p-4">
-            <dt className="text-xs text-slate-500">Passing marks</dt>
-            <dd className="mt-1 text-xl font-semibold text-white">{exam.passingMarks}</dd>
+          <dl className="rounded-xl bg-slate-100 p-4 dark:bg-slate-950/50">
+            <dt className="text-xs text-slate-500 dark:text-slate-400">
+              {t('exam.fields.passingMarks')}
+            </dt>
+            <dd className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
+              {exam.passingMarks}
+            </dd>
           </dl>
-          <dl className="rounded-xl bg-slate-950/50 p-4">
-            <dt className="text-xs text-slate-500">Duration</dt>
-            <dd className="mt-1 text-xl font-semibold text-white">{exam.durationMinutes} min</dd>
+          <dl className="rounded-xl bg-slate-100 p-4 dark:bg-slate-950/50">
+            <dt className="text-xs text-slate-500 dark:text-slate-400">
+              {t('exam.fields.duration')}
+            </dt>
+            <dd className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
+              {t('common.minutesShort', { count: exam.durationMinutes })}
+            </dd>
           </dl>
-          <dl className="rounded-xl bg-slate-950/50 p-4">
-            <dt className="text-xs text-slate-500">Questions</dt>
-            <dd className="mt-1 text-xl font-semibold text-white">
+          <dl className="rounded-xl bg-slate-100 p-4 dark:bg-slate-950/50">
+            <dt className="text-xs text-slate-500 dark:text-slate-400">{t('common.questions')}</dt>
+            <dd className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
               {exam.questionCount ?? attachedQuestions.length}
             </dd>
           </dl>
-          <dl className="rounded-xl bg-slate-950/50 p-4">
-            <dt className="text-xs text-slate-500">Attempts</dt>
-            <dd className="mt-1 text-xl font-semibold text-white">{exam.attemptCount ?? 0}</dd>
+          <dl className="rounded-xl bg-slate-100 p-4 dark:bg-slate-950/50">
+            <dt className="text-xs text-slate-500 dark:text-slate-400">{t('common.attempts')}</dt>
+            <dd className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
+              {exam.attemptCount ?? 0}
+            </dd>
           </dl>
         </div>
         <div className="mt-4 grid gap-3 text-sm md:grid-cols-2">
-          <p className="rounded-xl border border-slate-800 px-4 py-3 text-slate-400">
-            <span className="text-slate-500">Scheduled start:</span>{' '}
+          <p className="rounded-xl border border-slate-200 px-4 py-3 text-slate-600 dark:border-slate-800 dark:text-slate-400">
+            <span className="text-slate-500 dark:text-slate-400">
+              {t('teacher.exams.schedule.start')}:
+            </span>{' '}
             {formatDateTime(exam.scheduledStart)}
           </p>
-          <p className="rounded-xl border border-slate-800 px-4 py-3 text-slate-400">
-            <span className="text-slate-500">Scheduled end:</span>{' '}
+          <p className="rounded-xl border border-slate-200 px-4 py-3 text-slate-600 dark:border-slate-800 dark:text-slate-400">
+            <span className="text-slate-500 dark:text-slate-400">
+              {t('teacher.exams.schedule.end')}:
+            </span>{' '}
             {formatDateTime(exam.scheduledEnd)}
           </p>
         </div>
         {showSettingsForm ? (
-          <div className="mt-5 border-t border-slate-800 pt-5">
+          <div className="mt-5 border-t border-slate-200 pt-5 dark:border-slate-800">
             {subjectsQuery.isError ? (
               <div
-                className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100"
+                className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/25 dark:bg-rose-500/10 dark:text-rose-100"
                 role="alert"
               >
                 <span>
-                  {getApiErrorMessage(
-                    subjectsQuery.error,
-                    'Unable to load the available subjects.',
-                  )}
+                  {getApiErrorMessage(subjectsQuery.error, t('teacher.questions.errors.subjects'))}
                 </span>
                 <button
-                  className="rounded-lg border border-rose-400/30 px-3 py-1.5 text-xs font-semibold transition hover:bg-rose-500/15"
+                  className="rounded-lg border border-rose-400 px-3 py-1.5 text-xs font-semibold transition hover:bg-rose-100 dark:border-rose-400/30 dark:hover:bg-rose-500/15"
                   onClick={() => subjectsQuery.refetch()}
                   type="button"
                 >
-                  Retry
+                  {t('common.retry')}
                 </button>
               </div>
             ) : null}
@@ -420,7 +465,7 @@ export function TeacherExamBuilderPage() {
         ) : null}
       </section>
 
-      <section className="mt-6 rounded-2xl border border-slate-800 bg-slate-900/55 p-5 sm:p-6">
+      <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900/55">
         <ExamQuestionBuilder
           attachments={attachedQuestions}
           availableQuestions={availableQuestions}
@@ -435,7 +480,7 @@ export function TeacherExamBuilderPage() {
           onSave={updateQuestion}
           questionsError={
             questionsQuery.isError
-              ? getApiErrorMessage(questionsQuery.error, 'The question bank could not be loaded.')
+              ? getApiErrorMessage(questionsQuery.error, t('teacher.examBuilder.errors.questions'))
               : ''
           }
           totalMarks={exam.totalMarks ?? 0}
@@ -443,11 +488,13 @@ export function TeacherExamBuilderPage() {
       </section>
 
       {isDraft ? (
-        <section className="mt-6 rounded-2xl border border-slate-800 bg-slate-900/55 p-5 sm:p-6">
+        <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900/55">
           <div className="mb-5">
-            <h2 className="text-lg font-semibold text-white">Schedule</h2>
-            <p className="mt-1 text-sm text-slate-400">
-              Both times are required, and the start must still be in the future when publishing.
+            <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+              {t('teacher.examBuilder.schedule.title')}
+            </h2>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              {t('teacher.examBuilder.schedule.description')}
             </p>
           </div>
           <ExamScheduleForm
@@ -466,22 +513,23 @@ export function TeacherExamBuilderPage() {
         </section>
       ) : null}
 
-      <section className="mt-6 rounded-2xl border border-slate-800 bg-slate-900/55 p-5 sm:p-6">
+      <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900/55">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-2xl">
-            <h2 className="text-lg font-semibold text-white">Exam lifecycle</h2>
-            <p className="mt-1 text-sm leading-6 text-slate-400">
-              Publish a complete scheduled draft. Published exams can be archived, while only unused
-              drafts can be permanently deleted.
+            <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+              {t('teacher.examBuilder.lifecycle.title')}
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-400">
+              {t('teacher.examBuilder.lifecycle.description')}
             </p>
             {lifecycleError ? (
               <div
-                className="mt-4 rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100"
+                className="mt-4 rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/25 dark:bg-rose-500/10 dark:text-rose-100"
                 role="alert"
               >
                 <p>{lifecycleError}</p>
                 {publicationRequirements.length > 0 ? (
-                  <ul className="mt-2 list-disc space-y-1 pl-5 text-rose-200/80">
+                  <ul className="mt-2 list-disc space-y-1 pl-5 text-rose-700/80 dark:text-rose-200/80">
                     {publicationRequirements.map((requirement) => (
                       <li key={requirement}>{requirement}</li>
                     ))}
@@ -498,27 +546,33 @@ export function TeacherExamBuilderPage() {
                 onClick={publishExam}
                 type="button"
               >
-                {publishMutation.isPending ? 'Publishing…' : 'Publish exam'}
+                {publishMutation.isPending
+                  ? t('teacher.examBuilder.lifecycle.publishing')
+                  : t('teacher.examBuilder.lifecycle.publish')}
               </button>
             ) : null}
             {canArchive ? (
               <button
-                className="rounded-xl border border-amber-500/30 px-4 py-2.5 text-sm font-semibold text-amber-200 transition hover:bg-amber-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-xl border border-amber-400 px-4 py-2.5 text-sm font-semibold text-amber-700 transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-amber-500/30 dark:text-amber-200 dark:hover:bg-amber-500/10"
                 disabled={lifecycleActionsDisabled}
                 onClick={archiveExam}
                 type="button"
               >
-                {archiveMutation.isPending ? 'Archiving…' : 'Archive exam'}
+                {archiveMutation.isPending
+                  ? t('common.archiving')
+                  : t('teacher.examBuilder.lifecycle.archive')}
               </button>
             ) : null}
             {canDelete ? (
               <button
-                className="rounded-xl border border-rose-500/30 px-4 py-2.5 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-xl border border-rose-400 px-4 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-500/30 dark:text-rose-200 dark:hover:bg-rose-500/10"
                 disabled={lifecycleActionsDisabled}
                 onClick={deleteExam}
                 type="button"
               >
-                {deleteMutation.isPending ? 'Deleting…' : 'Delete draft'}
+                {deleteMutation.isPending
+                  ? t('common.deleting')
+                  : t('teacher.exams.list.deleteDraft')}
               </button>
             ) : null}
           </div>

@@ -1,6 +1,9 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '../config/prisma.js'
 import { AppError } from '../utils/AppError.js'
+import { AuditAction, AuditEntityType, recordAuditLog } from './auditLogService.js'
+
+const INTERACTIVE_TRANSACTION_TIMEOUT_MS = 15_000
 
 const SUBJECT_SELECT = {
   code: true,
@@ -95,25 +98,49 @@ export async function updateSubject(id, changes) {
   }
 }
 
-export async function deleteSubject(id) {
-  const subject = await prisma.subject.findUnique({
-    select: {
-      _count: { select: { exams: true, questions: true } },
-      ...SUBJECT_SELECT,
-    },
-    where: { id },
-  })
-
-  if (!subject) {
-    throw subjectNotFoundError()
-  }
-
-  if (subject._count.exams > 0 || subject._count.questions > 0) {
-    throw subjectDependencyError()
-  }
-
+export async function deleteSubject({ actorId, id }) {
   try {
-    await prisma.subject.delete({ where: { id } })
+    return await prisma.$transaction(
+      async (transaction) => {
+        const subject = await transaction.subject.findUnique({
+          select: {
+            _count: { select: { exams: true, questions: true } },
+            ...SUBJECT_SELECT,
+          },
+          where: { id },
+        })
+
+        if (!subject) {
+          throw subjectNotFoundError()
+        }
+
+        if (subject._count.exams > 0 || subject._count.questions > 0) {
+          throw subjectDependencyError()
+        }
+
+        await transaction.subject.delete({ where: { id } })
+        await recordAuditLog(
+          {
+            action: AuditAction.SUBJECT_DELETED,
+            actorId,
+            entityId: subject.id,
+            entityType: AuditEntityType.SUBJECT,
+            metadata: { code: subject.code, name: subject.name },
+          },
+          transaction,
+        )
+
+        return {
+          code: subject.code,
+          createdAt: subject.createdAt,
+          createdById: subject.createdById,
+          description: subject.description,
+          id: subject.id,
+          name: subject.name,
+        }
+      },
+      { timeout: INTERACTIVE_TRANSACTION_TIMEOUT_MS },
+    )
   } catch (error) {
     if (isPrismaError(error, 'P2003')) {
       throw subjectDependencyError()
@@ -124,14 +151,5 @@ export async function deleteSubject(id) {
     }
 
     throw error
-  }
-
-  return {
-    code: subject.code,
-    createdAt: subject.createdAt,
-    createdById: subject.createdById,
-    description: subject.description,
-    id: subject.id,
-    name: subject.name,
   }
 }

@@ -8,6 +8,7 @@ import {
   subscribeToSessionChanges,
 } from '../services/authSession.js'
 import { AuthContext } from './authContext.js'
+import i18n from '../i18n/index.js'
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(getStoredSession)
@@ -94,7 +95,7 @@ export function AuthProvider({ children }) {
       const authenticatedSession = response?.data
 
       if (!authenticatedSession?.token || !authenticatedSession?.user) {
-        throw new Error('The server returned an invalid login response')
+        throw new Error(i18n.t('errors.invalidLoginResponse'))
       }
 
       storeSession(authenticatedSession)

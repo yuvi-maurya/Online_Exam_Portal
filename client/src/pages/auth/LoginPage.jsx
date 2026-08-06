@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AuthCard } from '../../components/auth/AuthCard.jsx'
 import { AuthError, AuthNotice } from '../../components/auth/AuthFeedback.jsx'
@@ -18,7 +19,8 @@ import { getRoleHomeRoute } from '../../utils/roleRoutes.js'
 const INITIAL_VALUES = { email: '', password: '' }
 
 export function LoginPage() {
-  useDocumentTitle('Sign in')
+  const { t } = useTranslation()
+  useDocumentTitle(t('auth.login.documentTitle'))
 
   const { login } = useAuth()
   const location = useLocation()
@@ -59,7 +61,7 @@ export function LoginPage() {
       const user = result?.user ?? result
       navigate(getRoleHomeRoute(user?.role), { replace: true })
     } catch (error) {
-      setFormError(getApiErrorMessage(error, 'Unable to sign in.'))
+      setFormError(getApiErrorMessage(error, t('auth.login.errors.submit')))
     } finally {
       setIsSubmitting(false)
     }
@@ -67,16 +69,19 @@ export function LoginPage() {
 
   return (
     <AuthCard
-      description="Use your verified Exam Portal account to continue."
+      description={t('auth.login.description')}
       footer={
         <>
-          New to Exam Portal?{' '}
-          <Link className="text-brand-400 hover:text-brand-100 font-semibold" to="/register">
-            Create an account
+          {t('auth.login.newUser')}{' '}
+          <Link
+            className="text-brand-600 hover:text-brand-500 dark:text-brand-400 dark:hover:text-brand-100 font-semibold"
+            to="/register"
+          >
+            {t('auth.login.createAccount')}
           </Link>
         </>
       }
-      title="Welcome back"
+      title={t('auth.login.title')}
     >
       <form className="space-y-5" noValidate onSubmit={handleSubmit}>
         <AuthNotice message={notice} />
@@ -87,10 +92,10 @@ export function LoginPage() {
           error={fieldErrors.email}
           id="login-email"
           inputMode="email"
-          label="Email address"
+          label={t('auth.fields.email')}
           name="email"
           onChange={updateField}
-          placeholder="you@example.com"
+          placeholder={t('auth.placeholders.email')}
           required
           type="email"
           value={values.email}
@@ -100,7 +105,7 @@ export function LoginPage() {
           disabled={isSubmitting}
           error={fieldErrors.password}
           id="login-password"
-          label="Password"
+          label={t('auth.fields.password')}
           name="password"
           onChange={updateField}
           required
@@ -109,14 +114,14 @@ export function LoginPage() {
         />
         <div className="flex justify-end">
           <Link
-            className="text-brand-400 hover:text-brand-100 text-sm font-medium"
+            className="text-brand-600 hover:text-brand-500 dark:text-brand-400 dark:hover:text-brand-100 text-sm font-medium"
             to="/forgot-password"
           >
-            Forgot password?
+            {t('auth.login.forgotPassword')}
           </Link>
         </div>
-        <SubmitButton isLoading={isSubmitting} loadingLabel="Signing in…">
-          Sign in
+        <SubmitButton isLoading={isSubmitting} loadingLabel={t('auth.login.signingIn')}>
+          {t('auth.login.submit')}
         </SubmitButton>
       </form>
     </AuthCard>

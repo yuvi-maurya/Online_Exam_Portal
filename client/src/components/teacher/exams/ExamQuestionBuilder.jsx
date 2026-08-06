@@ -1,17 +1,11 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const inputClassName =
-  'w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3.5 py-2.5 text-sm text-white outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 disabled:cursor-not-allowed disabled:opacity-60'
-
-function formatQuestionType(value) {
-  return value
-    .toLowerCase()
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
-}
+  'w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950/70 dark:text-white'
 
 function AddQuestionForm({ availableQuestions, disabled, isPending, nextOrder, onAttach }) {
+  const { t } = useTranslation()
   const [questionId, setQuestionId] = useState('')
   const [marks, setMarks] = useState('')
   const [order, setOrder] = useState(String(nextOrder))
@@ -31,17 +25,17 @@ function AddQuestionForm({ availableQuestions, disabled, isPending, nextOrder, o
     const orderNumber = Number(order)
 
     if (!questionId) {
-      setError('Choose a question to attach.')
+      setError(t('teacher.exams.builder.validation.questionRequired'))
       return
     }
 
     if (!Number.isInteger(marksNumber) || marksNumber < 1) {
-      setError('Marks must be a whole number of at least 1.')
+      setError(t('teacher.exams.builder.validation.marks'))
       return
     }
 
     if (!Number.isInteger(orderNumber) || orderNumber < 0) {
-      setError('Order must be a whole number of 0 or greater.')
+      setError(t('teacher.exams.builder.validation.order'))
       return
     }
 
@@ -50,37 +44,36 @@ function AddQuestionForm({ availableQuestions, disabled, isPending, nextOrder, o
 
   if (availableQuestions.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-slate-700 px-4 py-7 text-center text-sm text-slate-400">
-        Every matching question is already attached, or the question bank has no questions for this
-        subject.
+      <div className="rounded-xl border border-dashed border-slate-300 px-4 py-7 text-center text-sm text-slate-600 dark:border-slate-700 dark:text-slate-400">
+        {t('teacher.exams.builder.noAvailableQuestions')}
       </div>
     )
   }
 
   return (
     <form
-      className="rounded-xl border border-slate-800 bg-slate-950/40 p-4"
+      className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/40"
       onSubmit={handleSubmit}
     >
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_8rem_8rem_auto] lg:items-end">
-        <label className="text-sm font-medium text-slate-200">
-          Question
+        <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+          {t('common.question')}
           <select
             className={`mt-2 ${inputClassName}`}
             disabled={disabled}
             onChange={selectQuestion}
             value={questionId}
           >
-            <option value="">Select a question</option>
+            <option value="">{t('teacher.exams.builder.selectQuestion')}</option>
             {availableQuestions.map((question) => (
               <option key={question.id} value={question.id}>
-                [{formatQuestionType(question.type)}] {question.content}
+                [{t(`questions.types.${question.type}`)}] {question.content}
               </option>
             ))}
           </select>
         </label>
-        <label className="text-sm font-medium text-slate-200">
-          Marks
+        <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+          {t('common.marks')}
           <input
             className={`mt-2 ${inputClassName}`}
             disabled={disabled}
@@ -95,8 +88,8 @@ function AddQuestionForm({ availableQuestions, disabled, isPending, nextOrder, o
             value={marks}
           />
         </label>
-        <label className="text-sm font-medium text-slate-200">
-          Order
+        <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+          {t('common.order')}
           <input
             className={`mt-2 ${inputClassName}`}
             disabled={disabled}
@@ -116,15 +109,16 @@ function AddQuestionForm({ availableQuestions, disabled, isPending, nextOrder, o
           disabled={disabled}
           type="submit"
         >
-          {isPending ? 'Attaching…' : 'Attach'}
+          {isPending ? t('teacher.exams.builder.attaching') : t('teacher.exams.builder.attach')}
         </button>
       </div>
-      {error ? <p className="mt-3 text-sm text-rose-300">{error}</p> : null}
+      {error ? <p className="mt-3 text-sm text-rose-700 dark:text-rose-300">{error}</p> : null}
     </form>
   )
 }
 
 function AttachmentEditor({ attachment, disabled, editable, isPending, onDetach, onSave }) {
+  const { t } = useTranslation()
   const [marks, setMarks] = useState(String(attachment.marks))
   const [order, setOrder] = useState(String(attachment.order))
   const [error, setError] = useState('')
@@ -135,12 +129,12 @@ function AttachmentEditor({ attachment, disabled, editable, isPending, onDetach,
     const orderNumber = Number(order)
 
     if (!Number.isInteger(marksNumber) || marksNumber < 1) {
-      setError('Marks must be a whole number of at least 1.')
+      setError(t('teacher.exams.builder.validation.marks'))
       return
     }
 
     if (!Number.isInteger(orderNumber) || orderNumber < 0) {
-      setError('Order must be a whole number of 0 or greater.')
+      setError(t('teacher.exams.builder.validation.order'))
       return
     }
 
@@ -149,16 +143,18 @@ function AttachmentEditor({ attachment, disabled, editable, isPending, onDetach,
   }
 
   return (
-    <li className="rounded-xl border border-slate-800 bg-slate-950/45 p-4">
+    <li className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950/45">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="rounded-full bg-slate-800 px-2.5 py-1 font-semibold text-slate-300">
-              {formatQuestionType(attachment.question.type)}
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+              {t(`questions.types.${attachment.question.type}`)}
             </span>
-            <span className="text-slate-500">{attachment.question.difficulty}</span>
+            <span className="text-slate-500 dark:text-slate-400">
+              {t(`questions.difficulties.${attachment.question.difficulty}`)}
+            </span>
           </div>
-          <p className="mt-3 text-sm leading-6 whitespace-pre-wrap text-slate-200">
+          <p className="mt-3 text-sm leading-6 whitespace-pre-wrap text-slate-800 dark:text-slate-200">
             {attachment.question.content}
           </p>
         </div>
@@ -168,8 +164,8 @@ function AttachmentEditor({ attachment, disabled, editable, isPending, onDetach,
             className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-[6.5rem_6.5rem_auto_auto] sm:items-end"
             onSubmit={submit}
           >
-            <label className="text-xs font-medium text-slate-400">
-              Marks
+            <label className="text-xs font-medium text-slate-600 dark:text-slate-400">
+              {t('common.marks')}
               <input
                 className={`mt-1.5 ${inputClassName}`}
                 disabled={disabled}
@@ -183,8 +179,8 @@ function AttachmentEditor({ attachment, disabled, editable, isPending, onDetach,
                 value={marks}
               />
             </label>
-            <label className="text-xs font-medium text-slate-400">
-              Order
+            <label className="text-xs font-medium text-slate-600 dark:text-slate-400">
+              {t('common.order')}
               <input
                 className={`mt-1.5 ${inputClassName}`}
                 disabled={disabled}
@@ -199,35 +195,41 @@ function AttachmentEditor({ attachment, disabled, editable, isPending, onDetach,
               />
             </label>
             <button
-              className="rounded-lg border border-sky-500/30 px-3 py-2.5 text-xs font-semibold text-sky-200 transition hover:bg-sky-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-lg border border-sky-400 px-3 py-2.5 text-xs font-semibold text-sky-700 transition hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-sky-500/30 dark:text-sky-200 dark:hover:bg-sky-500/10"
               disabled={disabled}
               type="submit"
             >
-              {isPending ? 'Saving…' : 'Save'}
+              {isPending ? t('common.saving') : t('common.save')}
             </button>
             <button
-              className="rounded-lg border border-rose-500/30 px-3 py-2.5 text-xs font-semibold text-rose-200 transition hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-lg border border-rose-400 px-3 py-2.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-500/30 dark:text-rose-200 dark:hover:bg-rose-500/10"
               disabled={disabled}
               onClick={() => onDetach(attachment)}
               type="button"
             >
-              Remove
+              {t('common.remove')}
             </button>
           </form>
         ) : (
           <dl className="grid shrink-0 grid-cols-2 gap-2 text-sm">
-            <div className="rounded-lg bg-slate-900 px-3 py-2">
-              <dt className="text-xs text-slate-500">Marks</dt>
-              <dd className="mt-1 font-semibold text-slate-200">{attachment.marks}</dd>
+            <div className="rounded-lg bg-slate-100 px-3 py-2 dark:bg-slate-900">
+              <dt className="text-xs text-slate-500 dark:text-slate-400">{t('common.marks')}</dt>
+              <dd className="mt-1 font-semibold text-slate-800 dark:text-slate-200">
+                {attachment.marks}
+              </dd>
             </div>
-            <div className="rounded-lg bg-slate-900 px-3 py-2">
-              <dt className="text-xs text-slate-500">Order</dt>
-              <dd className="mt-1 font-semibold text-slate-200">{attachment.order}</dd>
+            <div className="rounded-lg bg-slate-100 px-3 py-2 dark:bg-slate-900">
+              <dt className="text-xs text-slate-500 dark:text-slate-400">{t('common.order')}</dt>
+              <dd className="mt-1 font-semibold text-slate-800 dark:text-slate-200">
+                {attachment.order}
+              </dd>
             </div>
           </dl>
         )}
       </div>
-      {error ? <p className="mt-2 text-right text-xs text-rose-300">{error}</p> : null}
+      {error ? (
+        <p className="mt-2 text-right text-xs text-rose-700 dark:text-rose-300">{error}</p>
+      ) : null}
     </li>
   )
 }
@@ -247,6 +249,7 @@ export function ExamQuestionBuilder({
   questionsError,
   totalMarks,
 }) {
+  const { t } = useTranslation()
   const nextOrder = attachments.reduce(
     (highest, attachment) => Math.max(highest, attachment.order + 1),
     0,
@@ -257,22 +260,28 @@ export function ExamQuestionBuilder({
     <div>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-white">Question builder</h2>
-          <p className="mt-1 text-sm text-slate-400">
+          <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+            {t('teacher.exams.builder.title')}
+          </h2>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
             {editable
-              ? 'Attach questions from this subject, then override marks and ordering as needed.'
-              : 'Question marks and ordering are read-only after publication.'}
+              ? t('teacher.exams.builder.description')
+              : t('teacher.exams.builder.readOnlyDescription')}
           </p>
         </div>
         <div className="border-brand-500/25 bg-brand-500/10 rounded-xl border px-4 py-2 text-right">
-          <p className="text-brand-400 text-xs font-medium">Running total</p>
-          <p className="text-xl font-bold text-white">{totalMarks} marks</p>
+          <p className="text-brand-700 dark:text-brand-400 text-xs font-medium">
+            {t('teacher.exams.builder.runningTotal')}
+          </p>
+          <p className="text-xl font-bold text-slate-950 dark:text-white">
+            {t('teacher.exams.builder.markCount', { count: totalMarks })}
+          </p>
         </div>
       </div>
 
       {error ? (
         <div
-          className="mb-4 rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100"
+          className="mb-4 rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/25 dark:bg-rose-500/10 dark:text-rose-100"
           role="alert"
         >
           {error}
@@ -281,18 +290,21 @@ export function ExamQuestionBuilder({
 
       {!editable ? null : isLoadingQuestions ? (
         <div
-          className="h-28 animate-pulse rounded-xl border border-slate-800 bg-slate-950/45"
-          aria-label="Loading question bank"
+          className="h-28 animate-pulse rounded-xl border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-950/45"
+          aria-label={t('teacher.exams.builder.loadingQuestionBank')}
         />
       ) : questionsError ? (
-        <div className="rounded-xl border border-rose-500/25 bg-rose-500/10 p-4" role="alert">
-          <p className="text-sm text-rose-100">{questionsError}</p>
+        <div
+          className="rounded-xl border border-rose-300 bg-rose-50 p-4 dark:border-rose-500/25 dark:bg-rose-500/10"
+          role="alert"
+        >
+          <p className="text-sm text-rose-700 dark:text-rose-100">{questionsError}</p>
           <button
-            className="mt-3 rounded-lg border border-rose-400/30 px-3 py-2 text-xs font-semibold text-rose-100 hover:bg-rose-500/10"
+            className="mt-3 rounded-lg border border-rose-400 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100 dark:border-rose-400/30 dark:text-rose-100 dark:hover:bg-rose-500/10"
             onClick={onRetryQuestions}
             type="button"
           >
-            Try again
+            {t('common.tryAgain')}
           </button>
         </div>
       ) : (
@@ -307,12 +319,12 @@ export function ExamQuestionBuilder({
       )}
 
       <div className="mt-5">
-        <h3 className="text-sm font-semibold text-slate-200">
-          Attached questions ({attachments.length})
+        <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+          {t('teacher.exams.builder.attachedCount', { count: attachments.length })}
         </h3>
         {attachments.length === 0 ? (
-          <div className="mt-3 rounded-xl border border-dashed border-amber-500/30 bg-amber-500/5 px-4 py-6 text-center text-sm text-amber-100/80">
-            No questions are attached. At least one is required before publishing.
+          <div className="mt-3 rounded-xl border border-dashed border-amber-300 bg-amber-50 px-4 py-6 text-center text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/5 dark:text-amber-100/80">
+            {t('teacher.exams.builder.noAttachments')}
           </div>
         ) : (
           <ol className="mt-3 space-y-3">

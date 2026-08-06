@@ -3,6 +3,7 @@ import { Prisma, Role } from '@prisma/client'
 import { prisma } from '../config/prisma.js'
 import { AppError } from '../utils/AppError.js'
 import { hashPassword } from '../utils/password.js'
+import { AuditAction, AuditEntityType, recordAuditLog } from './auditLogService.js'
 import { sendPasswordResetCode } from './authService.js'
 
 const INTERACTIVE_TRANSACTION_TIMEOUT_MS = 15_000
@@ -57,7 +58,7 @@ function translateUserMutationError(error, role) {
   throw error
 }
 
-export async function createManagedUser({ email, name, role }) {
+export async function createManagedUser({ actorId, email, name, role }) {
   getRoleMetadata(role)
 
   const inaccessiblePassword = randomBytes(48).toString('base64url')
@@ -65,17 +66,35 @@ export async function createManagedUser({ email, name, role }) {
   let user
 
   try {
-    user = await prisma.user.create({
-      data: {
-        email,
-        isActive: true,
-        isEmailVerified: true,
-        name,
-        password: passwordHash,
-        role,
+    user = await prisma.$transaction(
+      async (transaction) => {
+        const createdUser = await transaction.user.create({
+          data: {
+            email,
+            isActive: true,
+            isEmailVerified: true,
+            name,
+            password: passwordHash,
+            role,
+          },
+          select: MANAGED_USER_SELECT,
+        })
+
+        await recordAuditLog(
+          {
+            action: AuditAction.USER_CREATED,
+            actorId,
+            entityId: createdUser.id,
+            entityType: AuditEntityType.USER,
+            metadata: { role },
+          },
+          transaction,
+        )
+
+        return createdUser
       },
-      select: MANAGED_USER_SELECT,
-    })
+      { timeout: INTERACTIVE_TRANSACTION_TIMEOUT_MS },
+    )
   } catch (error) {
     translateUserMutationError(error, role)
   }
@@ -162,15 +181,33 @@ export async function updateManagedUser({ changes, id, role }) {
   }
 }
 
-export async function setManagedUserActive({ id, isActive, role }) {
+export async function setManagedUserActive({ actorId, id, isActive, role }) {
   getRoleMetadata(role)
 
   try {
-    return await prisma.user.update({
-      data: { isActive },
-      select: MANAGED_USER_SELECT,
-      where: { id, role },
-    })
+    return await prisma.$transaction(
+      async (transaction) => {
+        const user = await transaction.user.update({
+          data: { isActive },
+          select: MANAGED_USER_SELECT,
+          where: { id, role },
+        })
+
+        await recordAuditLog(
+          {
+            action: isActive ? AuditAction.USER_REACTIVATED : AuditAction.USER_DEACTIVATED,
+            actorId,
+            entityId: user.id,
+            entityType: AuditEntityType.USER,
+            metadata: { role },
+          },
+          transaction,
+        )
+
+        return user
+      },
+      { timeout: INTERACTIVE_TRANSACTION_TIMEOUT_MS },
+    )
   } catch (error) {
     translateUserMutationError(error, role)
   }

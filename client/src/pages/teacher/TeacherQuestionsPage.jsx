@@ -1,12 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { QuestionDeleteDialog } from '../../components/teacher/questions/QuestionDeleteDialog.jsx'
 import { QuestionFilters } from '../../components/teacher/questions/QuestionFilters.jsx'
 import { QuestionForm } from '../../components/teacher/questions/QuestionForm.jsx'
 import { QuestionTable } from '../../components/teacher/questions/QuestionTable.jsx'
+import { BulkImportPanel } from '../../components/BulkImportPanel.jsx'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js'
 import { ApiError, getApiErrorMessage } from '../../services/apiClient.js'
 import {
+  bulkImportTeacherQuestions,
   createTeacherQuestion,
   deleteTeacherQuestion,
   listTeacherQuestions,
@@ -58,34 +61,42 @@ async function fetchAllFilteredQuestions(filters) {
   }
 }
 
-function getDeleteErrorMessage(error) {
+function getDeleteErrorMessage(error, t) {
   if (error instanceof ApiError && error.code === 'QUESTION_HAS_DEPENDENCIES') {
-    return "Can't delete — this question is attached to an exam or has student responses."
+    return t('teacher.questions.errors.dependencies')
   }
 
-  return getApiErrorMessage(error, 'Unable to delete this question.')
+  return getApiErrorMessage(error, t('teacher.questions.errors.delete'))
 }
 
 function QueryError({ error, onRetry }) {
+  const { t } = useTranslation()
+
   return (
-    <div className="rounded-xl border border-rose-500/25 bg-rose-500/10 p-5" role="alert">
-      <p className="font-medium text-rose-100">Unable to load the question bank</p>
-      <p className="mt-1 text-sm text-rose-200/75">
-        {getApiErrorMessage(error, 'Unable to load questions.')}
+    <div
+      className="rounded-xl border border-rose-300 bg-rose-50 p-5 dark:border-rose-500/25 dark:bg-rose-500/10"
+      role="alert"
+    >
+      <p className="font-medium text-rose-800 dark:text-rose-100">
+        {t('teacher.questions.errors.loadTitle')}
+      </p>
+      <p className="mt-1 text-sm text-rose-700 dark:text-rose-200/75">
+        {getApiErrorMessage(error, t('teacher.questions.errors.load'))}
       </p>
       <button
-        className="mt-4 rounded-lg border border-rose-400/30 px-3 py-2 text-sm font-semibold text-rose-100 transition hover:bg-rose-500/15"
+        className="mt-4 rounded-lg border border-rose-400 px-3 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-400/30 dark:text-rose-100 dark:hover:bg-rose-500/15"
         onClick={onRetry}
         type="button"
       >
-        Try again
+        {t('common.tryAgain')}
       </button>
     </div>
   )
 }
 
 export function TeacherQuestionsPage() {
-  useDocumentTitle('Question bank')
+  const { t } = useTranslation()
+  useDocumentTitle(t('teacher.questions.title'))
 
   const queryClient = useQueryClient()
   const [filters, setFilters] = useState(EMPTY_FILTERS)
@@ -149,13 +160,13 @@ export function TeacherQuestionsPage() {
   const createMutation = useMutation({
     mutationFn: createTeacherQuestion,
     onError: (error) => {
-      setFormError(getApiErrorMessage(error, 'Unable to create this question.'))
+      setFormError(getApiErrorMessage(error, t('teacher.questions.errors.create')))
     },
     onSuccess: async (question) => {
       await refreshQuestions()
       setEditor(null)
       setPage(1)
-      setNotice('Question created successfully.')
+      setNotice(t('teacher.questions.notices.created'))
       setFormError('')
       queryClient.setQueryData(teacherQueryKeys.question(question.id), question)
     },
@@ -164,13 +175,13 @@ export function TeacherQuestionsPage() {
   const updateMutation = useMutation({
     mutationFn: ({ id, payload }) => updateTeacherQuestion(id, payload),
     onError: (error) => {
-      setFormError(getApiErrorMessage(error, 'Unable to save this question.'))
+      setFormError(getApiErrorMessage(error, t('teacher.questions.errors.save')))
     },
     onSuccess: async (question) => {
       await refreshQuestions()
       setEditor(null)
       setPage(1)
-      setNotice('Question updated successfully.')
+      setNotice(t('teacher.questions.notices.updated'))
       setFormError('')
       queryClient.setQueryData(teacherQueryKeys.question(question.id), question)
     },
@@ -179,14 +190,14 @@ export function TeacherQuestionsPage() {
   const deleteMutation = useMutation({
     mutationFn: deleteTeacherQuestion,
     onError: (error) => {
-      setDeleteError(getDeleteErrorMessage(error))
+      setDeleteError(getDeleteErrorMessage(error, t))
     },
     onSuccess: async () => {
       const shouldMoveBack = visibleQuestions.length === 1 && page > 1
       await refreshQuestions()
       setDeleteTarget(null)
       setDeleteError('')
-      setNotice('Question deleted successfully.')
+      setNotice(t('teacher.questions.notices.deleted'))
       if (shouldMoveBack) setPage((current) => Math.max(1, current - 1))
     },
   })
@@ -266,15 +277,14 @@ export function TeacherQuestionsPage() {
     <main className="px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
       <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-3xl">
-          <p className="text-brand-400 text-xs font-semibold tracking-[0.18em] uppercase">
-            Content library
+          <p className="text-brand-700 dark:text-brand-400 text-xs font-semibold tracking-[0.18em] uppercase">
+            {t('teacher.questions.eyebrow')}
           </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Question bank
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl dark:text-white">
+            {t('teacher.questions.title')}
           </h1>
-          <p className="mt-3 leading-7 text-slate-400">
-            Build reusable questions, define their answers, and organize them by subject before
-            adding them to exams.
+          <p className="mt-3 leading-7 text-slate-600 dark:text-slate-400">
+            {t('teacher.questions.description')}
           </p>
         </div>
         <button
@@ -285,29 +295,45 @@ export function TeacherQuestionsPage() {
           onClick={openCreateForm}
           type="button"
         >
-          Create question
+          {t('teacher.questions.form.create')}
         </button>
       </header>
 
       {notice ? (
         <div
-          className="mt-7 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200"
+          className="mt-7 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-200"
           role="status"
         >
           {notice}
         </div>
       ) : null}
 
+      <div className="mt-7">
+        <BulkImportPanel
+          description={t('teacher.questions.bulkImport.description')}
+          expectedColumns={t('teacher.questions.bulkImport.expectedColumns')}
+          importFile={bulkImportTeacherQuestions}
+          onImported={async () => {
+            setPage(1)
+            setNotice('')
+            await refreshQuestions()
+          }}
+          title={t('teacher.questions.bulkImport.title')}
+        />
+      </div>
+
       {editor ? (
-        <section className="mt-7 rounded-2xl border border-slate-800 bg-slate-900/55 p-5 sm:p-6">
+        <section className="mt-7 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900/55">
           <div className="mb-5">
-            <h2 className="text-lg font-semibold text-white">
-              {editor.mode === 'edit' ? 'Edit question' : 'Create a question'}
-            </h2>
-            <p className="mt-1 text-sm text-slate-400">
+            <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
               {editor.mode === 'edit'
-                ? 'Saving changes updates this question wherever the backend allows it.'
-                : 'Choose the type first so the correct answer fields match the question.'}
+                ? t('teacher.questions.form.editTitle')
+                : t('teacher.questions.form.createTitle')}
+            </h2>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              {editor.mode === 'edit'
+                ? t('teacher.questions.form.editDescription')
+                : t('teacher.questions.form.createDescription')}
             </p>
           </div>
           <QuestionForm
@@ -326,37 +352,38 @@ export function TeacherQuestionsPage() {
         </section>
       ) : null}
 
-      <section className="mt-7 rounded-2xl border border-slate-800 bg-slate-900/55 p-5 sm:p-6">
+      <section className="mt-7 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900/55">
         <div className="mb-5">
-          <h2 className="text-lg font-semibold text-white">Your questions</h2>
-          <p className="mt-1 text-sm text-slate-400">
-            Filters run on the server. Text search checks every question in the filtered result.
+          <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+            {t('teacher.questions.yourQuestions')}
+          </h2>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            {t('teacher.questions.listDescription')}
           </p>
         </div>
 
         {subjectsQuery.isError ? (
           <div
-            className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100"
+            className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/25 dark:bg-rose-500/10 dark:text-rose-100"
             role="alert"
           >
             <span>
-              {getApiErrorMessage(subjectsQuery.error, 'Unable to load the available subjects.')}
+              {getApiErrorMessage(subjectsQuery.error, t('teacher.questions.errors.subjects'))}
             </span>
             <button
-              className="rounded-lg border border-rose-400/30 px-3 py-1.5 text-xs font-semibold transition hover:bg-rose-500/15"
+              className="rounded-lg border border-rose-400 px-3 py-1.5 text-xs font-semibold transition hover:bg-rose-100 dark:border-rose-400/30 dark:hover:bg-rose-500/15"
               onClick={() => subjectsQuery.refetch()}
               type="button"
             >
-              Retry
+              {t('common.retry')}
             </button>
           </div>
         ) : subjectsQuery.isSuccess && subjects.length === 0 ? (
           <p
-            className="mb-4 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
+            className="mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-100"
             role="status"
           >
-            No subjects are available yet. Ask an administrator to create one before adding a
-            question.
+            {t('teacher.questions.noSubjects')}
           </p>
         ) : null}
 

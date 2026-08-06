@@ -1,4 +1,8 @@
+import { useTranslation } from 'react-i18next'
+
 export function FullscreenGuardOverlay({ error, isOpen, isRequesting, onEnterFullscreen }) {
+  const { t } = useTranslation()
+
   if (!isOpen) return null
 
   function keepFocusInsideGuard(event) {
@@ -27,11 +31,10 @@ export function FullscreenGuardOverlay({ error, isOpen, isRequesting, onEnterFul
           className="mt-5 text-2xl font-bold tracking-tight text-white"
           id="fullscreen-guard-title"
         >
-          Full-screen mode required
+          {t('student.security.fullscreen.title')}
         </h2>
         <p className="mt-3 text-sm leading-6 text-slate-300">
-          Return to full-screen mode to continue your exam. Leaving full-screen during an active
-          attempt is recorded as a security violation.
+          {t('student.security.fullscreen.description')}
         </p>
 
         {error ? (
@@ -50,7 +53,9 @@ export function FullscreenGuardOverlay({ error, isOpen, isRequesting, onEnterFul
           onClick={() => void onEnterFullscreen()}
           type="button"
         >
-          {isRequesting ? 'Entering full-screen…' : 'Enter full-screen'}
+          {isRequesting
+            ? t('student.security.fullscreen.entering')
+            : t('student.security.fullscreen.enter')}
         </button>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { AttemptStatus } from '@prisma/client'
+import { logger } from '../config/logger.js'
 import { prisma } from '../config/prisma.js'
 import {
   sendPendingGradingReminderEmail,
@@ -31,7 +32,10 @@ function notificationEventId({ resourceId, type, userId }) {
 }
 
 function logDeliveryFailure({ error, resourceId, stage, type }) {
-  console.error(`Notification ${stage} failed for ${type} event on resource ${resourceId}:`, error)
+  logger.error(
+    { err: error, notificationType: type, resourceId, stage },
+    'Notification delivery failed',
+  )
 }
 
 async function deliverNotificationOnce({ emailDelivery, message, resourceId, type, userId }) {

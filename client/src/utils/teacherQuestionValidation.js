@@ -1,16 +1,18 @@
+import i18n from '../i18n/index.js'
+
 export const QUESTION_TYPES = Object.freeze([
-  { label: 'Multiple choice', value: 'MCQ' },
-  { label: 'True / false', value: 'TRUE_FALSE' },
-  { label: 'Fill in the blank', value: 'FILL_BLANK' },
-  { label: 'Short answer', value: 'SHORT_ANSWER' },
-  { label: 'Essay', value: 'ESSAY' },
-  { label: 'Coding', value: 'CODING' },
+  { labelKey: 'questions.types.MCQ', value: 'MCQ' },
+  { labelKey: 'questions.types.TRUE_FALSE', value: 'TRUE_FALSE' },
+  { labelKey: 'questions.types.FILL_BLANK', value: 'FILL_BLANK' },
+  { labelKey: 'questions.types.SHORT_ANSWER', value: 'SHORT_ANSWER' },
+  { labelKey: 'questions.types.ESSAY', value: 'ESSAY' },
+  { labelKey: 'questions.types.CODING', value: 'CODING' },
 ])
 
 export const QUESTION_DIFFICULTIES = Object.freeze([
-  { label: 'Easy', value: 'EASY' },
-  { label: 'Medium', value: 'MEDIUM' },
-  { label: 'Hard', value: 'HARD' },
+  { labelKey: 'questions.difficulties.EASY', value: 'EASY' },
+  { labelKey: 'questions.difficulties.MEDIUM', value: 'MEDIUM' },
+  { labelKey: 'questions.difficulties.HARD', value: 'HARD' },
 ])
 
 export const CHOICE_QUESTION_TYPES = new Set(['MCQ', 'TRUE_FALSE'])
@@ -35,7 +37,10 @@ function createClientOption(text = '', isCorrect = false, id) {
 
 export function createDefaultChoiceOptions(type = 'MCQ') {
   if (type === 'TRUE_FALSE') {
-    return [createClientOption('True', true), createClientOption('False', false)]
+    return [
+      createClientOption(i18n.t('questions.options.true'), true),
+      createClientOption(i18n.t('questions.options.false'), false),
+    ]
   }
 
   return [createClientOption('', true), createClientOption('', false)]
@@ -64,33 +69,35 @@ export function getInitialQuestionValues(question) {
 
 function validateOptions(options, type) {
   if (!Array.isArray(options)) {
-    return 'Add the answer choices for this question.'
+    return i18n.t('validation.question.optionsRequired')
   }
 
   if (type === 'TRUE_FALSE' && options.length !== 2) {
-    return 'True / false questions must have exactly two options.'
+    return i18n.t('validation.question.trueFalseOptionCount')
   }
 
   if (options.length < 2 || options.length > MAX_OPTIONS) {
-    return `Questions must have between 2 and ${MAX_OPTIONS} options.`
+    return i18n.t('validation.question.optionCount', { maximum: MAX_OPTIONS })
   }
 
   const normalizedTexts = options.map((option) => option.text.trim().toLowerCase())
 
   if (normalizedTexts.some((text) => text.length === 0)) {
-    return 'Every option needs an answer text.'
+    return i18n.t('validation.question.optionTextRequired')
   }
 
   if (options.some((option) => option.text.trim().length > MAX_OPTION_LENGTH)) {
-    return `Option text cannot exceed ${MAX_OPTION_LENGTH.toLocaleString()} characters.`
+    return i18n.t('validation.question.optionTextMaximum', {
+      maximum: MAX_OPTION_LENGTH.toLocaleString(i18n.language),
+    })
   }
 
   if (new Set(normalizedTexts).size !== normalizedTexts.length) {
-    return 'Each option must have unique text.'
+    return i18n.t('validation.question.optionUnique')
   }
 
   if (options.filter((option) => option.isCorrect).length !== 1) {
-    return 'Mark exactly one option as correct.'
+    return i18n.t('validation.question.oneCorrectOption')
   }
 
   return ''
@@ -106,32 +113,38 @@ export function validateQuestionValues(values) {
   const supportedDifficulties = new Set(QUESTION_DIFFICULTIES.map(({ value }) => value))
 
   if (content.length < 1 || content.length > MAX_CONTENT_LENGTH) {
-    errors.content = `Question text must be between 1 and ${MAX_CONTENT_LENGTH.toLocaleString()} characters.`
+    errors.content = i18n.t('validation.question.contentLength', {
+      maximum: MAX_CONTENT_LENGTH.toLocaleString(i18n.language),
+    })
   }
 
   if (!supportedTypes.has(values.type)) {
-    errors.type = 'Choose a valid question type.'
+    errors.type = i18n.t('validation.question.type')
   }
 
   if (!supportedDifficulties.has(values.difficulty)) {
-    errors.difficulty = 'Choose a valid difficulty.'
+    errors.difficulty = i18n.t('validation.question.difficulty')
   }
 
   if (!subjectId) {
-    errors.subjectId = 'Choose a subject.'
+    errors.subjectId = i18n.t('validation.common.subjectRequired')
   } else if (subjectId.length > MAX_SUBJECT_ID_LENGTH) {
-    errors.subjectId = 'The selected subject is invalid.'
+    errors.subjectId = i18n.t('validation.common.subjectInvalid')
   }
 
   if (!Number.isInteger(marks) || marks < 1 || marks > MAX_MARKS) {
-    errors.marks = `Marks must be a whole number between 1 and ${MAX_MARKS.toLocaleString()}.`
+    errors.marks = i18n.t('validation.question.marks', {
+      maximum: MAX_MARKS.toLocaleString(i18n.language),
+    })
   }
 
   if (CHOICE_QUESTION_TYPES.has(values.type)) {
     const optionsError = validateOptions(values.options, values.type)
     if (optionsError) errors.options = optionsError
   } else if (!correctAnswerText || correctAnswerText.length > MAX_CONTENT_LENGTH) {
-    errors.correctAnswerText = `The correct answer must be between 1 and ${MAX_CONTENT_LENGTH.toLocaleString()} characters.`
+    errors.correctAnswerText = i18n.t('validation.question.correctAnswerLength', {
+      maximum: MAX_CONTENT_LENGTH.toLocaleString(i18n.language),
+    })
   }
 
   return errors

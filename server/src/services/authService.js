@@ -1,4 +1,5 @@
 import { Prisma, Role, VerificationPurpose } from '@prisma/client'
+import { logger } from '../config/logger.js'
 import { prisma } from '../config/prisma.js'
 import { AppError } from '../utils/AppError.js'
 import { signAuthToken } from '../utils/jwt.js'
@@ -268,7 +269,7 @@ export async function requestPasswordReset({ email }) {
   try {
     await sendPasswordResetCode(user)
   } catch {
-    console.error('Password reset email delivery failed')
+    logger.error({ event: 'password_reset_email_delivery_failed' }, 'Email delivery failed')
   }
 
   return GENERIC_PASSWORD_RESET_MESSAGE

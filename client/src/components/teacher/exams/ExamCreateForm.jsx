@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   EXAM_TYPES,
   formatExamType,
@@ -8,28 +9,28 @@ import {
 import { formatSubjectLabel } from '../../../utils/teacherSubject.js'
 
 const inputClassName =
-  'mt-2 w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 disabled:cursor-not-allowed disabled:opacity-60'
+  'mt-2 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950/70 dark:text-white dark:placeholder:text-slate-600'
 
 const securityFields = [
   {
-    description: 'Randomize the order of questions for each attempt.',
+    descriptionKey: 'teacher.exams.form.security.shuffleQuestionsDescription',
     key: 'shuffleQuestions',
-    label: 'Shuffle questions',
+    labelKey: 'teacher.exams.form.security.shuffleQuestions',
   },
   {
-    description: 'Randomize answer options where the question supports it.',
+    descriptionKey: 'teacher.exams.form.security.shuffleOptionsDescription',
     key: 'shuffleOptions',
-    label: 'Shuffle options',
+    labelKey: 'teacher.exams.form.security.shuffleOptions',
   },
   {
-    description: 'Ask students to remain in full-screen mode.',
+    descriptionKey: 'teacher.exams.form.security.fullScreenDescription',
     key: 'fullScreenRequired',
-    label: 'Require full screen',
+    labelKey: 'teacher.exams.form.security.fullScreen',
   },
   {
-    description: 'Enable the webcam requirement for this exam.',
+    descriptionKey: 'teacher.exams.form.security.webcamDescription',
     key: 'webcamMonitoring',
-    label: 'Require webcam',
+    labelKey: 'teacher.exams.form.security.webcam',
   },
 ]
 
@@ -46,6 +47,7 @@ export function ExamCreateForm({
   subjectsLoading = false,
   subjectsUnavailable = false,
 }) {
+  const { t } = useTranslation()
   const [values, setValues] = useState(() => getExamFormValues(exam))
   const [validationError, setValidationError] = useState('')
   const formDisabled = disabled || isPending
@@ -78,7 +80,7 @@ export function ExamCreateForm({
     <form className="space-y-6" onSubmit={handleSubmit}>
       {displayedError ? (
         <div
-          className="rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100"
+          className="rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/25 dark:bg-rose-500/10 dark:text-rose-100"
           role="alert"
         >
           {displayedError}
@@ -86,8 +88,8 @@ export function ExamCreateForm({
       ) : null}
 
       <div className="grid gap-5 md:grid-cols-2">
-        <label className="text-sm font-medium text-slate-200 md:col-span-2">
-          Exam title
+        <label className="text-sm font-medium text-slate-700 md:col-span-2 dark:text-slate-200">
+          {t('teacher.exams.form.title')}
           <input
             autoComplete="off"
             className={inputClassName}
@@ -96,14 +98,14 @@ export function ExamCreateForm({
             minLength={3}
             name="title"
             onChange={updateField}
-            placeholder="e.g. Algebra fundamentals quiz"
+            placeholder={t('teacher.exams.form.titlePlaceholder')}
             required
             value={values.title}
           />
         </label>
 
-        <label className="text-sm font-medium text-slate-200">
-          Subject
+        <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+          {t('common.subject')}
           <select
             className={inputClassName}
             disabled={subjectSelectionDisabled}
@@ -114,12 +116,12 @@ export function ExamCreateForm({
           >
             <option value="">
               {subjectsLoading
-                ? 'Loading subjects…'
+                ? t('common.loadingSubjects')
                 : subjectsUnavailable
-                  ? 'Subjects unavailable'
+                  ? t('common.subjectsUnavailable')
                   : subjects.length === 0
-                    ? 'No subjects available'
-                    : 'Choose a subject'}
+                    ? t('common.noSubjectsAvailable')
+                    : t('validation.common.subjectRequired')}
             </option>
             {subjects.map((subject) => (
               <option key={subject.id} value={subject.id}>
@@ -129,8 +131,8 @@ export function ExamCreateForm({
           </select>
         </label>
 
-        <label className="text-sm font-medium text-slate-200">
-          Exam type
+        <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+          {t('teacher.exams.form.type')}
           <select
             className={inputClassName}
             disabled={formDisabled}
@@ -146,8 +148,8 @@ export function ExamCreateForm({
           </select>
         </label>
 
-        <label className="text-sm font-medium text-slate-200">
-          Duration (minutes)
+        <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+          {t('teacher.exams.form.duration')}
           <input
             className={inputClassName}
             disabled={formDisabled}
@@ -162,8 +164,8 @@ export function ExamCreateForm({
           />
         </label>
 
-        <label className="text-sm font-medium text-slate-200">
-          Passing marks
+        <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+          {t('exam.fields.passingMarks')}
           <input
             className={inputClassName}
             disabled={formDisabled}
@@ -175,13 +177,13 @@ export function ExamCreateForm({
             type="number"
             value={values.passingMarks}
           />
-          <span className="mt-1.5 block text-xs font-normal text-slate-500">
-            You can attach questions and see the final total before publishing.
+          <span className="mt-1.5 block text-xs font-normal text-slate-500 dark:text-slate-400">
+            {t('teacher.exams.form.passingMarksHint')}
           </span>
         </label>
 
-        <label className="text-sm font-medium text-slate-200">
-          Allowed tab switches
+        <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+          {t('teacher.exams.form.allowedTabSwitches')}
           <input
             className={inputClassName}
             disabled={formDisabled}
@@ -189,23 +191,25 @@ export function ExamCreateForm({
             min="0"
             name="tabSwitchLimit"
             onChange={updateField}
-            placeholder="No limit"
+            placeholder={t('teacher.exams.form.noLimit')}
             step="1"
             type="number"
             value={values.tabSwitchLimit}
           />
-          <span className="mt-1.5 block text-xs font-normal text-slate-500">
-            Leave blank for no configured limit; use 0 to allow none.
+          <span className="mt-1.5 block text-xs font-normal text-slate-500 dark:text-slate-400">
+            {t('teacher.exams.form.tabSwitchHint')}
           </span>
         </label>
       </div>
 
       <fieldset>
-        <legend className="text-sm font-semibold text-white">Security and delivery</legend>
+        <legend className="text-sm font-semibold text-slate-950 dark:text-white">
+          {t('teacher.exams.form.security.title')}
+        </legend>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {securityFields.map((field) => (
             <label
-              className="flex cursor-pointer gap-3 rounded-xl border border-slate-800 bg-slate-950/45 p-4"
+              className="flex cursor-pointer gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/45"
               key={field.key}
             >
               <input
@@ -217,9 +221,11 @@ export function ExamCreateForm({
                 type="checkbox"
               />
               <span>
-                <span className="block text-sm font-medium text-slate-200">{field.label}</span>
-                <span className="mt-1 block text-xs leading-5 text-slate-500">
-                  {field.description}
+                <span className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                  {t(field.labelKey)}
+                </span>
+                <span className="mt-1 block text-xs leading-5 text-slate-500 dark:text-slate-400">
+                  {t(field.descriptionKey)}
                 </span>
               </span>
             </label>
@@ -227,14 +233,14 @@ export function ExamCreateForm({
         </div>
       </fieldset>
 
-      <div className="flex flex-wrap justify-end gap-3 border-t border-slate-800 pt-5">
+      <div className="flex flex-wrap justify-end gap-3 border-t border-slate-200 pt-5 dark:border-slate-800">
         <button
-          className="rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
           disabled={formDisabled}
           onClick={onCancel}
           type="button"
         >
-          Cancel
+          {t('common.cancel')}
         </button>
         <button
           className="bg-brand-500 hover:bg-brand-400 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
@@ -243,11 +249,11 @@ export function ExamCreateForm({
         >
           {isPending
             ? isEditing
-              ? 'Saving changes…'
-              : 'Creating draft…'
+              ? t('common.savingChanges')
+              : t('teacher.exams.form.creatingDraft')
             : isEditing
-              ? 'Save changes'
-              : 'Create draft'}
+              ? t('common.saveChanges')
+              : t('teacher.exams.form.createDraft')}
         </button>
       </div>
     </form>

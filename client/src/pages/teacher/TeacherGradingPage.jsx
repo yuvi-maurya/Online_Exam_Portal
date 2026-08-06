@@ -1,4 +1,5 @@
 import { useQueries, useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { PendingAnswerCard } from '../../components/teacher/grading/PendingAnswerCard.jsx'
 import { TeacherPageHeader, TeacherQueryError } from '../../components/teacher/shared/index.js'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js'
@@ -6,11 +7,13 @@ import { getApiErrorMessage } from '../../services/apiClient.js'
 import { getPendingGrading, listTeacherExams, teacherQueryKeys } from '../../services/teacherApi.js'
 
 function GradingSkeleton() {
+  const { t } = useTranslation()
+
   return (
-    <div aria-busy="true" aria-label="Loading grading queue" className="space-y-4">
+    <div aria-busy="true" aria-label={t('teacher.grading.loading')} className="space-y-4">
       {Array.from({ length: 3 }, (_, index) => (
         <div
-          className="h-64 animate-pulse rounded-2xl border border-slate-800 bg-slate-900/55"
+          className="h-64 animate-pulse rounded-2xl border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-900/55"
           key={index}
         />
       ))}
@@ -19,7 +22,8 @@ function GradingSkeleton() {
 }
 
 export function TeacherGradingPage() {
-  useDocumentTitle('Manual grading')
+  const { t } = useTranslation()
+  useDocumentTitle(t('teacher.grading.title'))
 
   const examsQuery = useQuery({
     queryFn: listTeacherExams,
@@ -56,25 +60,23 @@ export function TeacherGradingPage() {
   return (
     <main className="space-y-7 px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
       <TeacherPageHeader
-        description="Review open-ended student responses and award marks. Each saved answer leaves this queue immediately."
-        eyebrow="Assessment"
-        title="Manual grading"
+        description={t('teacher.grading.description')}
+        eyebrow={t('teacher.grading.eyebrow')}
+        title={t('teacher.grading.title')}
       />
 
       {examsQuery.isError ? (
         <TeacherQueryError
-          message={getApiErrorMessage(examsQuery.error, 'Your exams could not be loaded.')}
+          message={getApiErrorMessage(examsQuery.error, t('teacher.dashboard.errors.exams'))}
           onRetry={() => examsQuery.refetch()}
         />
       ) : null}
 
       {failedQueries.length > 0 ? (
         <TeacherQueryError
-          message={`The grading queue could not be loaded for ${failedQueries.length} ${
-            failedQueries.length === 1 ? 'exam' : 'exams'
-          }. Available exams are still shown below.`}
+          message={t('teacher.grading.errors.partial', { count: failedQueries.length })}
           onRetry={retryFailedQueries}
-          title="Part of the grading queue is unavailable"
+          title={t('teacher.grading.errors.partialTitle')}
         />
       ) : null}
 
@@ -84,20 +86,21 @@ export function TeacherGradingPage() {
       !examsQuery.isError &&
       failedQueries.length === 0 &&
       pendingAnswers.length === 0 ? (
-        <section className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/35 px-5 py-14 text-center">
-          <p className="text-lg font-semibold text-white">Your grading queue is clear</p>
-          <p className="mt-2 text-sm text-slate-400">
-            Answers that need manual review will appear here after students submit an exam.
+        <section className="rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-14 text-center dark:border-slate-700 dark:bg-slate-900/35">
+          <p className="text-lg font-semibold text-slate-950 dark:text-white">
+            {t('teacher.grading.emptyTitle')}
+          </p>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+            {t('teacher.grading.emptyDescription')}
           </p>
         </section>
       ) : null}
 
       {pendingAnswers.length > 0 ? (
-        <section aria-label="Answers awaiting manual grading" className="space-y-5">
+        <section aria-label={t('teacher.grading.queueAria')} className="space-y-5">
           <div className="flex items-center justify-between gap-4">
-            <p className="text-sm text-slate-400">
-              <span className="font-semibold text-white">{pendingAnswers.length}</span>{' '}
-              {pendingAnswers.length === 1 ? 'answer awaits' : 'answers await'} a mark
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              {t('teacher.grading.pendingCount', { count: pendingAnswers.length })}
             </p>
           </div>
           {pendingAnswers.map(({ answer, attempt, exam }) => (

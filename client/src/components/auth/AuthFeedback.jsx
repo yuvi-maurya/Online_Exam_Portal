@@ -5,7 +5,7 @@ export function AuthError({ message }) {
 
   return (
     <div
-      className="rounded-xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-200"
+      className="rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-200"
       role="alert"
     >
       {message}
@@ -20,7 +20,7 @@ export function AuthNotice({ message }) {
 
   return (
     <div
-      className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200"
+      className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-200"
       role="status"
     >
       {message}

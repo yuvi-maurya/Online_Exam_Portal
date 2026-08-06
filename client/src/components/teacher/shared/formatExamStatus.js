@@ -1,11 +1,9 @@
+import i18n from '../../../i18n/index.js'
+
 export function formatExamStatus(status) {
   if (!status) {
-    return 'Unknown'
+    return i18n.t('common.unknown')
   }
 
-  return status
-    .toLowerCase()
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
+  return i18n.t(`statuses.${status}`, { defaultValue: i18n.t('common.unknown') })
 }

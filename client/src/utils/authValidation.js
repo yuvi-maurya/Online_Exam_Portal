@@ -1,3 +1,5 @@
+import i18n from '../i18n/index.js'
+
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const OTP_PATTERN = /^\d{6}$/
 
@@ -9,7 +11,7 @@ export function validateEmail(value) {
   const email = normalizeEmail(value)
 
   if (!email || email.length > 254 || !EMAIL_PATTERN.test(email)) {
-    return 'Enter a valid email address.'
+    return i18n.t('validation.auth.email')
   }
 
   return ''
@@ -19,7 +21,7 @@ export function validateName(value) {
   const name = value.trim().replace(/\s+/g, ' ')
 
   if (name.length < 2 || name.length > 100) {
-    return 'Name must be between 2 and 100 characters.'
+    return i18n.t('validation.auth.nameLength')
   }
 
   return ''
@@ -27,15 +29,15 @@ export function validateName(value) {
 
 export function validateStrongPassword(value) {
   if (value.length < 8) {
-    return 'Password must be at least 8 characters.'
+    return i18n.t('validation.auth.passwordMinimum')
   }
 
   if (new TextEncoder().encode(value).length > 72) {
-    return 'Password must not exceed 72 UTF-8 bytes.'
+    return i18n.t('validation.auth.passwordMaximum')
   }
 
   if (!/[A-Za-z]/.test(value) || !/\d/.test(value)) {
-    return 'Password must contain at least one letter and one number.'
+    return i18n.t('validation.auth.passwordComposition')
   }
 
   return ''
@@ -43,18 +45,18 @@ export function validateStrongPassword(value) {
 
 export function validateLoginPassword(value) {
   if (!value) {
-    return 'Enter your password.'
+    return i18n.t('validation.auth.passwordRequired')
   }
 
   if (new TextEncoder().encode(value).length > 72) {
-    return 'Password must not exceed 72 UTF-8 bytes.'
+    return i18n.t('validation.auth.passwordMaximum')
   }
 
   return ''
 }
 
 export function validateOtp(value) {
-  return OTP_PATTERN.test(value) ? '' : 'Enter the 6-digit verification code.'
+  return OTP_PATTERN.test(value) ? '' : i18n.t('validation.auth.otp')
 }
 
 export function getValidationErrors(values, validators) {

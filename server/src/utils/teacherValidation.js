@@ -185,11 +185,17 @@ function validateDate(value, field) {
 }
 
 export function validateTeacherResourceId(value, field = 'id') {
-  if (typeof value !== 'string' || value.length === 0 || value.length > 100) {
+  if (typeof value !== 'string') {
     throw validationError(`A valid ${field} is required`, field)
   }
 
-  return value
+  const id = value.trim()
+
+  if (id.length === 0 || id.length > 100) {
+    throw validationError(`A valid ${field} is required`, field)
+  }
+
+  return id
 }
 
 export function validateCompleteQuestionDefinition(question) {

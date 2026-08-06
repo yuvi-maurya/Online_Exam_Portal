@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { AuthCard } from '../../components/auth/AuthCard.jsx'
 import { AuthError } from '../../components/auth/AuthFeedback.jsx'
@@ -18,7 +19,8 @@ import {
 const INITIAL_VALUES = { email: '', name: '', password: '' }
 
 export function RegisterPage() {
-  useDocumentTitle('Create account')
+  const { t } = useTranslation()
+  useDocumentTitle(t('auth.register.documentTitle'))
 
   const { register } = useAuth()
   const navigate = useNavigate()
@@ -58,10 +60,10 @@ export function RegisterPage() {
         password: values.password,
       })
       navigate(`/verify-email?email=${encodeURIComponent(email)}`, {
-        state: { notice: 'Account created. Enter the verification code sent to your email.' },
+        state: { notice: t('auth.register.success') },
       })
     } catch (error) {
-      setFormError(getApiErrorMessage(error, 'Unable to create your account.'))
+      setFormError(getApiErrorMessage(error, t('auth.register.errors.submit')))
     } finally {
       setIsSubmitting(false)
     }
@@ -69,16 +71,19 @@ export function RegisterPage() {
 
   return (
     <AuthCard
-      description="Student registration is open. Teacher and admin accounts are created by an administrator."
+      description={t('auth.register.description')}
       footer={
         <>
-          Already registered?{' '}
-          <Link className="text-brand-400 hover:text-brand-100 font-semibold" to="/login">
-            Sign in
+          {t('auth.register.alreadyRegistered')}{' '}
+          <Link
+            className="text-brand-600 hover:text-brand-500 dark:text-brand-400 dark:hover:text-brand-100 font-semibold"
+            to="/login"
+          >
+            {t('auth.login.submit')}
           </Link>
         </>
       }
-      title="Create a student account"
+      title={t('auth.register.title')}
     >
       <form className="space-y-5" noValidate onSubmit={handleSubmit}>
         <AuthError message={formError} />
@@ -87,11 +92,11 @@ export function RegisterPage() {
           disabled={isSubmitting}
           error={fieldErrors.name}
           id="register-name"
-          label="Full name"
+          label={t('auth.fields.fullName')}
           maxLength={100}
           name="name"
           onChange={updateField}
-          placeholder="Your full name"
+          placeholder={t('auth.placeholders.fullName')}
           required
           type="text"
           value={values.name}
@@ -102,11 +107,11 @@ export function RegisterPage() {
           error={fieldErrors.email}
           id="register-email"
           inputMode="email"
-          label="Email address"
+          label={t('auth.fields.email')}
           maxLength={254}
           name="email"
           onChange={updateField}
-          placeholder="you@example.com"
+          placeholder={t('auth.placeholders.email')}
           required
           type="email"
           value={values.email}
@@ -115,17 +120,17 @@ export function RegisterPage() {
           autoComplete="new-password"
           disabled={isSubmitting}
           error={fieldErrors.password}
-          helperText="Use 8 or more characters with at least one letter and one number."
+          helperText={t('auth.passwordHint')}
           id="register-password"
-          label="Password"
+          label={t('auth.fields.password')}
           name="password"
           onChange={updateField}
           required
           type="password"
           value={values.password}
         />
-        <SubmitButton isLoading={isSubmitting} loadingLabel="Creating account…">
-          Create account
+        <SubmitButton isLoading={isSubmitting} loadingLabel={t('auth.register.creating')}>
+          {t('auth.register.submit')}
         </SubmitButton>
       </form>
     </AuthCard>

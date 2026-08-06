@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   CHOICE_QUESTION_TYPES,
   QUESTION_DIFFICULTIES,
@@ -14,29 +15,39 @@ import {
 import { formatSubjectLabel } from '../../../utils/teacherSubject.js'
 
 const inputClassName =
-  'focus:border-brand-400 focus:ring-brand-500/20 w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3.5 py-3 text-sm text-white transition outline-none placeholder:text-slate-600 focus:ring-4 disabled:cursor-not-allowed disabled:opacity-60'
+  'focus:border-brand-400 focus:ring-brand-500/20 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm text-slate-950 transition outline-none placeholder:text-slate-400 focus:ring-4 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950/70 dark:text-white dark:placeholder:text-slate-600'
 
 function FieldError({ children, id }) {
   return children ? (
-    <p className="mt-1.5 text-sm text-rose-300" id={id}>
+    <p className="mt-1.5 text-sm text-rose-700 dark:text-rose-300" id={id}>
       {children}
     </p>
   ) : null
 }
 
 function FieldLabel({ children, htmlFor, optional = false }) {
+  const { t } = useTranslation()
+
   return (
-    <label className="mb-2 block text-sm font-medium text-slate-200" htmlFor={htmlFor}>
-      {children} {optional ? <span className="font-normal text-slate-500">(optional)</span> : null}
+    <label
+      className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200"
+      htmlFor={htmlFor}
+    >
+      {children}{' '}
+      {optional ? (
+        <span className="font-normal text-slate-500 dark:text-slate-400">
+          {t('common.optional')}
+        </span>
+      ) : null}
     </label>
   )
 }
 
-function getAnswerLabel(type) {
-  if (type === 'CODING') return 'Expected solution or reference answer'
-  if (type === 'ESSAY') return 'Reference answer'
-  if (type === 'FILL_BLANK') return 'Correct text'
-  return 'Correct answer'
+function getAnswerLabel(type, t) {
+  if (type === 'CODING') return t('teacher.questions.form.expectedSolution')
+  if (type === 'ESSAY') return t('teacher.questions.form.referenceAnswer')
+  if (type === 'FILL_BLANK') return t('teacher.questions.form.correctText')
+  return t('teacher.questions.form.correctAnswer')
 }
 
 function QuestionOptionsEditor({
@@ -50,29 +61,32 @@ function QuestionOptionsEditor({
   options,
   type,
 }) {
+  const { t } = useTranslation()
   const isTrueFalse = type === 'TRUE_FALSE'
 
   return (
     <fieldset aria-describedby={error ? `${mode}-question-options-error` : undefined}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <legend className="text-sm font-medium text-slate-200">Answer options</legend>
-          <p className="mt-1 text-xs text-slate-500">
-            Select the correct answer. The displayed order is saved with the question.
+          <legend className="text-sm font-medium text-slate-700 dark:text-slate-200">
+            {t('teacher.questions.form.answerOptions')}
+          </legend>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {t('teacher.questions.form.optionsDescription')}
           </p>
         </div>
         {!isTrueFalse ? (
           <button
-            className="rounded-lg border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:border-slate-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-400 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:text-white"
             disabled={disabled || options.length >= 100}
             onClick={onAdd}
             type="button"
           >
-            Add option
+            {t('teacher.questions.form.addOption')}
           </button>
         ) : (
-          <span className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-400">
-            Exactly two options required
+          <span className="rounded-full border border-slate-300 px-3 py-1 text-xs text-slate-600 dark:border-slate-700 dark:text-slate-400">
+            {t('teacher.questions.form.twoOptionsRequired')}
           </span>
         )}
       </div>
@@ -80,10 +94,10 @@ function QuestionOptionsEditor({
       <div className="mt-4 space-y-3">
         {options.map((option, index) => (
           <div
-            className="grid gap-3 rounded-xl border border-slate-800 bg-slate-950/35 p-3 sm:grid-cols-[auto_1fr_auto] sm:items-center"
+            className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-[auto_1fr_auto] sm:items-center dark:border-slate-800 dark:bg-slate-950/35"
             key={option.clientId}
           >
-            <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
               <input
                 checked={option.isCorrect}
                 className="accent-brand-500 h-4 w-4"
@@ -92,11 +106,11 @@ function QuestionOptionsEditor({
                 onChange={() => onChange(option.clientId, 'isCorrect', true)}
                 type="radio"
               />
-              Correct
+              {t('teacher.questions.form.correct')}
             </label>
             <div>
               <label className="sr-only" htmlFor={`${mode}-question-option-${option.clientId}`}>
-                Option {index + 1}
+                {t('teacher.questions.form.optionLabel', { number: index + 1 })}
               </label>
               <input
                 className={inputClassName}
@@ -104,38 +118,38 @@ function QuestionOptionsEditor({
                 id={`${mode}-question-option-${option.clientId}`}
                 maxLength={2000}
                 onChange={(event) => onChange(option.clientId, 'text', event.target.value)}
-                placeholder={`Option ${index + 1}`}
+                placeholder={t('teacher.questions.form.optionLabel', { number: index + 1 })}
                 value={option.text}
               />
             </div>
             <div className="flex items-center justify-end gap-1">
               <button
-                aria-label={`Move option ${index + 1} up`}
-                className="rounded-lg border border-slate-700 px-2.5 py-2 text-xs text-slate-300 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
+                aria-label={t('teacher.questions.form.moveOptionUp', { number: index + 1 })}
+                className="rounded-lg border border-slate-300 px-2.5 py-2 text-xs text-slate-700 transition hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-35 dark:border-slate-700 dark:text-slate-300 dark:hover:text-white"
                 disabled={disabled || index === 0}
                 onClick={() => onMove(index, -1)}
                 type="button"
               >
-                Up
+                {t('common.up')}
               </button>
               <button
-                aria-label={`Move option ${index + 1} down`}
-                className="rounded-lg border border-slate-700 px-2.5 py-2 text-xs text-slate-300 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
+                aria-label={t('teacher.questions.form.moveOptionDown', { number: index + 1 })}
+                className="rounded-lg border border-slate-300 px-2.5 py-2 text-xs text-slate-700 transition hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-35 dark:border-slate-700 dark:text-slate-300 dark:hover:text-white"
                 disabled={disabled || index === options.length - 1}
                 onClick={() => onMove(index, 1)}
                 type="button"
               >
-                Down
+                {t('common.down')}
               </button>
               {!isTrueFalse ? (
                 <button
-                  aria-label={`Remove option ${index + 1}`}
-                  className="rounded-lg border border-rose-500/30 px-2.5 py-2 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-35"
+                  aria-label={t('teacher.questions.form.removeOptionAria', { number: index + 1 })}
+                  className="rounded-lg border border-rose-400 px-2.5 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-35 dark:border-rose-500/30 dark:text-rose-300 dark:hover:bg-rose-500/10"
                   disabled={disabled || options.length <= 2}
                   onClick={() => onRemove(option.clientId)}
                   type="button"
                 >
-                  Remove
+                  {t('common.remove')}
                 </button>
               ) : null}
             </div>
@@ -159,6 +173,7 @@ export function QuestionForm({
   subjectsLoading = false,
   subjectsUnavailable = false,
 }) {
+  const { t } = useTranslation()
   const [values, setValues] = useState(() => getInitialQuestionValues(question))
   const [fieldErrors, setFieldErrors] = useState({})
   const isEditing = mode === 'edit'
@@ -239,7 +254,7 @@ export function QuestionForm({
     <form className="space-y-6" noValidate onSubmit={handleSubmit}>
       {error ? (
         <div
-          className="rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-200"
+          className="rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/25 dark:bg-rose-500/10 dark:text-rose-200"
           role="alert"
         >
           {error}
@@ -248,8 +263,10 @@ export function QuestionForm({
 
       <div>
         <div className="mb-2 flex items-center justify-between gap-4">
-          <FieldLabel htmlFor={`${mode}-question-content`}>Question text</FieldLabel>
-          <span className="text-xs text-slate-500">
+          <FieldLabel htmlFor={`${mode}-question-content`}>
+            {t('teacher.questions.form.questionText')}
+          </FieldLabel>
+          <span className="text-xs text-slate-500 dark:text-slate-400">
             {values.content.trim().length.toLocaleString()}/20,000
           </span>
         </div>
@@ -262,7 +279,7 @@ export function QuestionForm({
           maxLength={20000}
           name="content"
           onChange={updateField}
-          placeholder="Enter the complete question prompt"
+          placeholder={t('teacher.questions.form.questionPlaceholder')}
           value={values.content}
         />
         <FieldError id={`${mode}-question-content-error`}>{fieldErrors.content}</FieldError>
@@ -270,7 +287,9 @@ export function QuestionForm({
 
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         <div>
-          <FieldLabel htmlFor={`${mode}-question-type`}>Question type</FieldLabel>
+          <FieldLabel htmlFor={`${mode}-question-type`}>
+            {t('teacher.questions.form.questionType')}
+          </FieldLabel>
           <select
             aria-invalid={Boolean(fieldErrors.type)}
             className={inputClassName}
@@ -282,7 +301,7 @@ export function QuestionForm({
           >
             {QUESTION_TYPES.map((type) => (
               <option key={type.value} value={type.value}>
-                {type.label}
+                {t(type.labelKey)}
               </option>
             ))}
           </select>
@@ -290,7 +309,7 @@ export function QuestionForm({
         </div>
 
         <div>
-          <FieldLabel htmlFor={`${mode}-question-difficulty`}>Difficulty</FieldLabel>
+          <FieldLabel htmlFor={`${mode}-question-difficulty`}>{t('common.difficulty')}</FieldLabel>
           <select
             aria-invalid={Boolean(fieldErrors.difficulty)}
             className={inputClassName}
@@ -302,7 +321,7 @@ export function QuestionForm({
           >
             {QUESTION_DIFFICULTIES.map((difficulty) => (
               <option key={difficulty.value} value={difficulty.value}>
-                {difficulty.label}
+                {t(difficulty.labelKey)}
               </option>
             ))}
           </select>
@@ -310,7 +329,7 @@ export function QuestionForm({
         </div>
 
         <div>
-          <FieldLabel htmlFor={`${mode}-question-subject`}>Subject</FieldLabel>
+          <FieldLabel htmlFor={`${mode}-question-subject`}>{t('common.subject')}</FieldLabel>
           <select
             aria-describedby={fieldErrors.subjectId ? `${mode}-question-subject-error` : undefined}
             aria-invalid={Boolean(fieldErrors.subjectId)}
@@ -323,12 +342,12 @@ export function QuestionForm({
           >
             <option value="">
               {subjectsLoading
-                ? 'Loading subjects…'
+                ? t('common.loadingSubjects')
                 : subjectsUnavailable
-                  ? 'Subjects unavailable'
+                  ? t('common.subjectsUnavailable')
                   : subjects.length === 0
-                    ? 'No subjects available'
-                    : 'Choose a subject'}
+                    ? t('common.noSubjectsAvailable')
+                    : t('validation.common.subjectRequired')}
             </option>
             {subjects.map((subject) => (
               <option key={subject.id} value={subject.id}>
@@ -340,7 +359,9 @@ export function QuestionForm({
         </div>
 
         <div>
-          <FieldLabel htmlFor={`${mode}-question-marks`}>Default marks</FieldLabel>
+          <FieldLabel htmlFor={`${mode}-question-marks`}>
+            {t('teacher.questions.form.defaultMarks')}
+          </FieldLabel>
           <input
             aria-describedby={fieldErrors.marks ? `${mode}-question-marks-error` : undefined}
             aria-invalid={Boolean(fieldErrors.marks)}
@@ -388,9 +409,9 @@ export function QuestionForm({
         <div>
           <div className="mb-2 flex items-center justify-between gap-4">
             <FieldLabel htmlFor={`${mode}-question-correct-answer`}>
-              {getAnswerLabel(values.type)}
+              {getAnswerLabel(values.type, t)}
             </FieldLabel>
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-slate-500 dark:text-slate-400">
               {values.correctAnswerText.trim().length.toLocaleString()}/20,000
             </span>
           </div>
@@ -405,7 +426,7 @@ export function QuestionForm({
             maxLength={20000}
             name="correctAnswerText"
             onChange={updateField}
-            placeholder="Enter the answer teachers will use as the grading reference"
+            placeholder={t('teacher.questions.form.answerPlaceholder')}
             value={values.correctAnswerText}
           />
           <FieldError id={`${mode}-question-correct-answer-error`}>
@@ -414,14 +435,14 @@ export function QuestionForm({
         </div>
       )}
 
-      <div className="flex flex-col-reverse gap-3 border-t border-slate-800 pt-5 sm:flex-row sm:justify-end">
+      <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end dark:border-slate-800">
         <button
-          className="rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:border-slate-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:text-white"
           disabled={isPending}
           onClick={onCancel}
           type="button"
         >
-          Cancel
+          {t('common.cancel')}
         </button>
         <button
           className="bg-brand-500 hover:bg-brand-400 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
@@ -430,11 +451,11 @@ export function QuestionForm({
         >
           {isPending
             ? isEditing
-              ? 'Saving question…'
-              : 'Creating question…'
+              ? t('teacher.questions.form.saving')
+              : t('teacher.questions.form.creating')
             : isEditing
-              ? 'Save changes'
-              : 'Create question'}
+              ? t('common.saveChanges')
+              : t('teacher.questions.form.create')}
         </button>
       </div>
     </form>

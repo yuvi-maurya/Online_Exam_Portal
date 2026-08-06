@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { apiRateLimiter } from '../middlewares/apiRateLimit.js'
 import adminRouter from './adminRoutes.js'
 import authRouter from './authRoutes.js'
 import certificateRouter from './certificateRoutes.js'
@@ -8,6 +9,8 @@ import studentRouter from './studentRoutes.js'
 import teacherRouter from './teacherRoutes.js'
 
 const apiRouter = Router()
+
+apiRouter.use(apiRateLimiter)
 
 apiRouter.use('/admin', adminRouter)
 apiRouter.use('/auth', authRouter)

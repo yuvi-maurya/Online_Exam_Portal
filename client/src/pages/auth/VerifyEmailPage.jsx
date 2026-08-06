@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { AuthCard } from '../../components/auth/AuthCard.jsx'
 import { AuthError, AuthNotice } from '../../components/auth/AuthFeedback.jsx'
@@ -16,7 +17,8 @@ import {
 const RESEND_COOLDOWN_SECONDS = 60
 
 export function VerifyEmailPage() {
-  useDocumentTitle('Verify email')
+  const { t } = useTranslation()
+  useDocumentTitle(t('auth.verifyEmail.documentTitle'))
 
   const [searchParams] = useSearchParams()
   const location = useLocation()
@@ -76,10 +78,10 @@ export function VerifyEmailPage() {
       })
       navigate('/login', {
         replace: true,
-        state: { notice: 'Email verified. You can now sign in.' },
+        state: { notice: t('auth.verifyEmail.success') },
       })
     } catch (error) {
-      setFormError(getApiErrorMessage(error, 'Unable to verify your email.'))
+      setFormError(getApiErrorMessage(error, t('auth.verifyEmail.errors.submit')))
     } finally {
       setIsSubmitting(false)
     }
@@ -101,12 +103,10 @@ export function VerifyEmailPage() {
       const response = await apiClient.post('/auth/resend-otp', {
         email: normalizeEmail(values.email),
       })
-      setNotice(
-        response?.message ?? 'If the account is eligible, a new verification code has been sent.',
-      )
+      setNotice(response?.message ?? t('auth.verifyEmail.resendSuccess'))
       setCooldown(RESEND_COOLDOWN_SECONDS)
     } catch (error) {
-      setFormError(getApiErrorMessage(error, 'Unable to resend the code.'))
+      setFormError(getApiErrorMessage(error, t('auth.verifyEmail.errors.resend')))
     } finally {
       setIsResending(false)
     }
@@ -114,13 +114,16 @@ export function VerifyEmailPage() {
 
   return (
     <AuthCard
-      description="Enter the six-digit code from your verification email."
+      description={t('auth.verifyEmail.description')}
       footer={
-        <Link className="text-brand-400 hover:text-brand-100 font-semibold" to="/login">
-          Back to sign in
+        <Link
+          className="text-brand-600 hover:text-brand-500 dark:text-brand-400 dark:hover:text-brand-100 font-semibold"
+          to="/login"
+        >
+          {t('auth.backToSignIn')}
         </Link>
       }
-      title="Verify your email"
+      title={t('auth.verifyEmail.title')}
     >
       <form className="space-y-5" noValidate onSubmit={handleSubmit}>
         <AuthNotice message={notice} />
@@ -131,11 +134,11 @@ export function VerifyEmailPage() {
           error={fieldErrors.email}
           id="verify-email"
           inputMode="email"
-          label="Email address"
+          label={t('auth.fields.email')}
           maxLength={254}
           name="email"
           onChange={updateField}
-          placeholder="you@example.com"
+          placeholder={t('auth.placeholders.email')}
           required
           type="email"
           value={values.email}
@@ -146,7 +149,7 @@ export function VerifyEmailPage() {
           error={fieldErrors.otp}
           id="verify-otp"
           inputMode="numeric"
-          label="Verification code"
+          label={t('auth.fields.verificationCode')}
           maxLength={6}
           name="otp"
           onChange={updateField}
@@ -156,20 +159,20 @@ export function VerifyEmailPage() {
           type="text"
           value={values.otp}
         />
-        <SubmitButton isLoading={isSubmitting} loadingLabel="Verifying…">
-          Verify email
+        <SubmitButton isLoading={isSubmitting} loadingLabel={t('auth.verifyEmail.verifying')}>
+          {t('auth.verifyEmail.submit')}
         </SubmitButton>
         <button
-          className="focus-visible:outline-brand-400 w-full rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:text-slate-600"
+          className="focus-visible:outline-brand-400 w-full rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:text-slate-400 dark:text-slate-300 dark:hover:text-white dark:disabled:text-slate-600"
           disabled={isResending || cooldown > 0 || isSubmitting}
           onClick={handleResend}
           type="button"
         >
           {isResending
-            ? 'Sending a new code…'
+            ? t('auth.verifyEmail.resending')
             : cooldown > 0
-              ? `Resend code in ${cooldown}s`
-              : 'Resend verification code'}
+              ? t('auth.verifyEmail.resendCooldown', { count: cooldown })
+              : t('auth.verifyEmail.resend')}
         </button>
       </form>
     </AuthCard>

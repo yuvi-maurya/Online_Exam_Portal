@@ -1,8 +1,9 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toDateTimeLocal, validateSchedule } from '../../../utils/teacherExamValidation.js'
 
 const inputClassName =
-  'mt-2 w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3.5 py-2.5 text-sm text-white outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 disabled:cursor-not-allowed disabled:opacity-60'
+  'mt-2 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950/70 dark:text-white'
 
 export function ExamScheduleForm({
   disabled = false,
@@ -12,6 +13,7 @@ export function ExamScheduleForm({
   onClearError,
   onSubmit,
 }) {
+  const { t } = useTranslation()
   const [start, setStart] = useState(toDateTimeLocal(exam.scheduledStart))
   const [end, setEnd] = useState(toDateTimeLocal(exam.scheduledEnd))
   const [validationError, setValidationError] = useState('')
@@ -46,15 +48,15 @@ export function ExamScheduleForm({
     <form onSubmit={handleSubmit}>
       {displayedError ? (
         <div
-          className="mb-4 rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100"
+          className="mb-4 rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/25 dark:bg-rose-500/10 dark:text-rose-100"
           role="alert"
         >
           {displayedError}
         </div>
       ) : null}
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="text-sm font-medium text-slate-200">
-          Scheduled start
+        <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+          {t('teacher.exams.schedule.start')}
           <input
             className={inputClassName}
             disabled={disabled || isPending}
@@ -64,8 +66,8 @@ export function ExamScheduleForm({
             value={start}
           />
         </label>
-        <label className="text-sm font-medium text-slate-200">
-          Scheduled end
+        <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+          {t('teacher.exams.schedule.end')}
           <input
             className={inputClassName}
             disabled={disabled || isPending}
@@ -83,10 +85,10 @@ export function ExamScheduleForm({
           type="submit"
         >
           {isPending
-            ? 'Saving schedule…'
+            ? t('teacher.exams.schedule.saving')
             : exam.scheduledStart
-              ? 'Update schedule'
-              : 'Set schedule'}
+              ? t('teacher.exams.schedule.update')
+              : t('teacher.exams.schedule.set')}
         </button>
       </div>
     </form>

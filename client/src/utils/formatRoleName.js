@@ -1,3 +1,7 @@
+import i18n from '../i18n/index.js'
+
 export function formatRoleName(role) {
-  return role.charAt(0).toUpperCase() + role.slice(1)
+  return i18n.t(`roles.${String(role ?? '').toUpperCase()}`, {
+    defaultValue: i18n.t('roles.unknown'),
+  })
 }

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Navigate, Link, useNavigate, useParams } from 'react-router-dom'
 import { AttemptNavigator } from '../../components/student/attempt/AttemptNavigator.jsx'
 import { AttemptQuestion } from '../../components/student/attempt/AttemptQuestion.jsx'
@@ -26,47 +27,57 @@ import {
 } from '../../services/studentApi.js'
 import { isAttemptAnswerComplete } from '../../utils/studentAttempt.js'
 
-function formatSubject(subject) {
+function formatSubject(subject, t) {
   if (typeof subject === 'string') return subject
-  return subject?.name ?? subject?.title ?? subject?.code ?? 'General'
+  return subject?.name ?? subject?.title ?? subject?.code ?? t('student.attempt.generalSubject')
 }
 
 function AttemptLoadingState() {
+  const { t } = useTranslation()
+
   return (
-    <main aria-busy="true" aria-label="Loading exam attempt" className="px-4 py-8 sm:px-6 lg:px-8">
-      <div className="h-24 animate-pulse rounded-2xl border border-slate-800 bg-slate-900/55" />
+    <main
+      aria-busy="true"
+      aria-label={t('student.attempt.loadingAria')}
+      className="px-4 py-8 sm:px-6 lg:px-8"
+    >
+      <div className="h-24 animate-pulse rounded-2xl border border-slate-200 bg-slate-200/70 dark:border-slate-800 dark:bg-slate-900/55" />
       <div className="mt-6 grid gap-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
-        <div className="h-72 animate-pulse rounded-2xl border border-slate-800 bg-slate-900/55" />
-        <div className="h-96 animate-pulse rounded-2xl border border-slate-800 bg-slate-900/55" />
+        <div className="h-72 animate-pulse rounded-2xl border border-slate-200 bg-slate-200/70 dark:border-slate-800 dark:bg-slate-900/55" />
+        <div className="h-96 animate-pulse rounded-2xl border border-slate-200 bg-slate-200/70 dark:border-slate-800 dark:bg-slate-900/55" />
       </div>
     </main>
   )
 }
 
 function AttemptLoadError({ error, onRetry }) {
+  const { t } = useTranslation()
+
   return (
     <main className="px-4 py-10 sm:px-6 lg:px-8">
       <div
-        className="mx-auto max-w-2xl rounded-2xl border border-rose-500/25 bg-rose-500/10 p-6"
+        className="mx-auto max-w-2xl rounded-2xl border border-rose-500/35 bg-rose-50 p-6 dark:border-rose-500/25 dark:bg-rose-500/10"
         role="alert"
       >
-        <h1 className="text-lg font-semibold text-rose-100">Unable to open this attempt</h1>
-        <p className="mt-2 text-sm leading-6 text-rose-200/80">
-          {getApiErrorMessage(error, 'The exam attempt could not be loaded.')}
+        <h1 className="text-lg font-semibold text-rose-900 dark:text-rose-100">
+          {t('student.attempt.loadError.title')}
+        </h1>
+        <p className="mt-2 text-sm leading-6 text-rose-700 dark:text-rose-200/80">
+          {getApiErrorMessage(error, t('student.attempt.loadError.description'))}
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
           <button
-            className="rounded-lg border border-rose-400/30 px-3 py-2 text-sm font-semibold text-rose-100 transition hover:bg-rose-500/15"
+            className="rounded-lg border border-rose-400/40 px-3 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-400/30 dark:text-rose-100 dark:hover:bg-rose-500/15"
             onClick={onRetry}
             type="button"
           >
-            Try again
+            {t('student.attempt.loadError.tryAgain')}
           </button>
           <Link
-            className="rounded-lg border border-slate-700 px-3 py-2 text-sm font-semibold text-slate-200 transition hover:bg-slate-800"
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
             to="/student"
           >
-            Back to exams
+            {t('student.attempt.loadError.backToExams')}
           </Link>
         </div>
       </div>
@@ -83,6 +94,7 @@ function FinalizedAttemptRedirect({ attemptId }) {
 }
 
 export function StudentAttemptPage() {
+  const { t } = useTranslation()
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -103,7 +115,11 @@ export function StudentAttemptPage() {
     },
   })
   const attempt = attemptQuery.data
-  useDocumentTitle(attempt?.exam?.title ? `${attempt.exam.title} exam` : 'Exam attempt')
+  useDocumentTitle(
+    attempt?.exam?.title
+      ? t('student.attempt.documentTitleWithExam', { exam: attempt.exam.title })
+      : t('student.attempt.documentTitle'),
+  )
 
   const navigateToResult = useCallback(
     (notice) => {
@@ -134,8 +150,8 @@ export function StudentAttemptPage() {
         getApiErrorMessage(
           error,
           automaticSubmissionRef.current
-            ? 'Time is up, but submission could not be confirmed. Please retry.'
-            : 'Your exam could not be submitted. Your saved answers are still safe.',
+            ? t('student.attempt.errors.timeoutSubmit')
+            : t('student.attempt.errors.submit'),
         ),
       )
     },
@@ -182,15 +198,13 @@ export function StudentAttemptPage() {
         return violation
       } catch (error) {
         if (isAttemptTerminalError(error)) {
-          navigateToResult(
-            'The attempt was already finalized while the security event was being processed.',
-          )
+          navigateToResult(t('student.attempt.securityAlreadyFinalized'))
         }
 
         throw error
       }
     },
-    [id, navigateToResult, queryClient, violationMutation],
+    [id, navigateToResult, queryClient, t, violationMutation],
   )
 
   const handleSecurityAutoFinalized = useCallback(
@@ -290,10 +304,8 @@ export function StudentAttemptPage() {
   async function handleManualSubmit() {
     const warning =
       unansweredCount > 0
-        ? `You still have ${unansweredCount} unanswered ${
-            unansweredCount === 1 ? 'question' : 'questions'
-          }. Submit anyway? You cannot change answers afterward.`
-        : 'Submit this exam now? You cannot change answers afterward.'
+        ? t('student.attempt.confirmSubmitWithUnanswered', { count: unansweredCount })
+        : t('student.attempt.confirmSubmit')
 
     if (!window.confirm(warning)) return
 
@@ -307,18 +319,14 @@ export function StudentAttemptPage() {
 
       if (!allAnswersSaved) {
         setIsPreparingSubmit(false)
-        setSubmitError(
-          'At least one answer is not saved yet. Retry the failed save before submitting so no work is lost.',
-        )
+        setSubmitError(t('student.attempt.errors.unsavedBeforeSubmit'))
         return
       }
 
       submitNow()
     } catch {
       setIsPreparingSubmit(false)
-      setSubmitError(
-        'Your answer saves could not be confirmed. Retry the failed save before submitting.',
-      )
+      setSubmitError(t('student.attempt.errors.saveConfirmation'))
     }
   }
 
@@ -349,18 +357,21 @@ export function StudentAttemptPage() {
         onEnterFullscreen={security.enterFullscreen}
       />
 
-      <header className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5 sm:p-6">
+      <header className="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm sm:p-6 dark:border-slate-800 dark:bg-slate-900/70 dark:shadow-none">
         <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
           <div className="min-w-0">
-            <p className="text-brand-400 text-xs font-semibold tracking-[0.16em] uppercase">
-              {formatSubject(attempt.exam.subject)}
+            <p className="text-brand-600 dark:text-brand-400 text-xs font-semibold tracking-[0.16em] uppercase">
+              {formatSubject(attempt.exam.subject, t)}
             </p>
-            <h1 className="mt-2 truncate text-2xl font-bold tracking-tight text-white sm:text-3xl">
+            <h1 className="mt-2 truncate text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl dark:text-white">
               {attempt.exam.title}
             </h1>
-            <p className="mt-2 text-sm text-slate-400">
-              {answersByQuestion.size - unansweredCount} of {questions.length} answered
-              {autosave.hasPendingSaves ? ' \u00b7 Unsaved changes pending' : ''}
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+              {t('student.attempt.answeredProgress', {
+                answered: answersByQuestion.size - unansweredCount,
+                total: questions.length,
+              })}
+              {autosave.hasPendingSaves ? t('student.attempt.unsavedChangesSuffix') : ''}
             </p>
           </div>
 
@@ -378,22 +389,28 @@ export function StudentAttemptPage() {
             ) : null}
 
             <div
-              aria-label={`${remainingLabel} remaining`}
+              aria-label={t('student.attempt.timerAria', { remaining: remainingLabel })}
               className={`shrink-0 rounded-xl border px-5 py-3 text-center ${
                 timerIsUrgent
-                  ? 'border-rose-500/35 bg-rose-500/10'
-                  : 'border-brand-400/25 bg-brand-500/10'
+                  ? 'border-rose-500/50 bg-rose-50 dark:border-rose-500/35 dark:bg-rose-500/10'
+                  : 'border-brand-500/35 bg-brand-50 dark:border-brand-400/25 dark:bg-brand-500/10'
               }`}
               role="timer"
             >
               <p
-                className={`text-xs font-semibold ${timerIsUrgent ? 'text-rose-300' : 'text-brand-400'}`}
+                className={`text-xs font-semibold ${
+                  timerIsUrgent
+                    ? 'text-rose-700 dark:text-rose-300'
+                    : 'text-brand-600 dark:text-brand-400'
+                }`}
               >
-                Time remaining
+                {t('student.attempt.timeRemaining')}
               </p>
               <p
                 className={`mt-1 font-mono text-2xl font-bold tracking-wider ${
-                  timerIsUrgent ? 'text-rose-100' : 'text-white'
+                  timerIsUrgent
+                    ? 'text-rose-900 dark:text-rose-100'
+                    : 'text-slate-950 dark:text-white'
                 }`}
               >
                 {remainingLabel}
@@ -418,44 +435,44 @@ export function StudentAttemptPage() {
 
       {timeUp ? (
         <div
-          className="mt-5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
+          className="mt-5 rounded-xl border border-amber-500/40 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100"
           role="status"
         >
-          <p className="font-semibold">Time is up</p>
-          <p className="mt-1 text-amber-200/80">
+          <p className="font-semibold">{t('student.attempt.timeUp.title')}</p>
+          <p className="mt-1 text-amber-700 dark:text-amber-200/80">
             {isPreparingSubmit
-              ? 'Saving your latest answer before automatic submission\u2026'
+              ? t('student.attempt.timeUp.saving')
               : submitMutation.isPending
-                ? 'Confirming your automatic submission with the server\u2026'
-                : 'The server will use its authoritative deadline for your attempt.'}
+                ? t('student.attempt.timeUp.confirming')
+                : t('student.attempt.timeUp.authoritativeDeadline')}
           </p>
         </div>
       ) : null}
 
       {submitError ? (
         <div
-          className="mt-5 flex flex-col gap-3 rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100 sm:flex-row sm:items-center sm:justify-between"
+          className="mt-5 flex flex-col gap-3 rounded-xl border border-rose-500/35 bg-rose-50 px-4 py-3 text-sm text-rose-900 sm:flex-row sm:items-center sm:justify-between dark:border-rose-500/25 dark:bg-rose-500/10 dark:text-rose-100"
           role="alert"
         >
           <span>{submitError}</span>
           {timeUp && !submitMutation.isPending ? (
             <button
-              className="shrink-0 rounded-lg border border-rose-400/30 px-3 py-2 text-xs font-semibold transition hover:bg-rose-500/15"
+              className="shrink-0 rounded-lg border border-rose-400/40 px-3 py-2 text-xs font-semibold transition hover:bg-rose-100 dark:border-rose-400/30 dark:hover:bg-rose-500/15"
               onClick={submitNow}
               type="button"
             >
-              Retry submission
+              {t('student.attempt.actions.retrySubmission')}
             </button>
           ) : autosave.hasFailedSaves ? (
             <button
-              className="shrink-0 rounded-lg border border-rose-400/30 px-3 py-2 text-xs font-semibold transition hover:bg-rose-500/15"
+              className="shrink-0 rounded-lg border border-rose-400/40 px-3 py-2 text-xs font-semibold transition hover:bg-rose-100 dark:border-rose-400/30 dark:hover:bg-rose-500/15"
               onClick={() => {
                 setSubmitError('')
                 void autosave.retryFailed()
               }}
               type="button"
             >
-              Retry unsaved answers
+              {t('student.attempt.actions.retryUnsaved')}
             </button>
           ) : null}
         </div>
@@ -484,30 +501,30 @@ export function StudentAttemptPage() {
             />
           ) : (
             <div
-              className="rounded-2xl border border-amber-500/25 bg-amber-500/10 p-6 text-amber-100"
+              className="rounded-2xl border border-amber-500/35 bg-amber-50 p-6 text-amber-900 dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-100"
               role="alert"
             >
-              This attempt has no questions. Return to the exam list and contact your teacher.
+              {t('student.attempt.noQuestions')}
             </div>
           )}
 
           <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex gap-3">
               <button
-                className="rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-45"
+                className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-45 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                 disabled={currentQuestionIndex <= 0 || interactionDisabled}
                 onClick={() => setSelectedQuestionId(questions[currentQuestionIndex - 1]?.id)}
                 type="button"
               >
-                Previous
+                {t('student.attempt.actions.previous')}
               </button>
               <button
-                className="rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-45"
+                className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-45 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                 disabled={currentQuestionIndex >= questions.length - 1 || interactionDisabled}
                 onClick={() => setSelectedQuestionId(questions[currentQuestionIndex + 1]?.id)}
                 type="button"
               >
-                Next
+                {t('student.attempt.actions.next')}
               </button>
             </div>
 
@@ -518,10 +535,10 @@ export function StudentAttemptPage() {
               type="button"
             >
               {isPreparingSubmit
-                ? 'Saving answers\u2026'
+                ? t('student.attempt.actions.savingAnswers')
                 : submitMutation.isPending
-                  ? 'Submitting\u2026'
-                  : 'Submit exam'}
+                  ? t('student.attempt.actions.submitting')
+                  : t('student.attempt.actions.submit')}
             </button>
           </div>
         </section>

@@ -1,11 +1,18 @@
+import i18n from '../i18n/index.js'
+
 export const EXAM_TYPES = ['PRACTICE', 'MOCK', 'FINAL', 'QUIZ', 'DAILY', 'WEEKLY']
 
 export const EXAM_STATUS_STYLES = Object.freeze({
-  ARCHIVED: 'border-slate-600 bg-slate-700/45 text-slate-300',
-  COMPLETED: 'border-violet-500/30 bg-violet-500/10 text-violet-200',
-  DRAFT: 'border-amber-500/30 bg-amber-500/10 text-amber-200',
-  ONGOING: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200',
-  PUBLISHED: 'border-sky-500/30 bg-sky-500/10 text-sky-200',
+  ARCHIVED:
+    'border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-600 dark:bg-slate-700/45 dark:text-slate-300',
+  COMPLETED:
+    'border-violet-300 bg-violet-50 text-violet-700 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-200',
+  DRAFT:
+    'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200',
+  ONGOING:
+    'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200',
+  PUBLISHED:
+    'border-sky-300 bg-sky-50 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200',
 })
 
 export const EMPTY_EXAM_FORM = Object.freeze({
@@ -43,11 +50,17 @@ export function getExamFormValues(exam) {
   }
 }
 
-function parseInteger(value, label, { maximum, minimum }) {
+function parseInteger(value, labelKey, { maximum, minimum }) {
   const number = Number(value)
 
   if (!Number.isInteger(number) || number < minimum || number > maximum) {
-    return { error: `${label} must be a whole number from ${minimum} to ${maximum}.` }
+    return {
+      error: i18n.t('validation.exam.wholeNumberRange', {
+        label: i18n.t(labelKey),
+        maximum,
+        minimum,
+      }),
+    }
   }
 
   return { value: number }
@@ -58,24 +71,24 @@ export function validateExamForm(values) {
   const subjectId = values.subjectId.trim()
 
   if (title.length < 3 || title.length > 200) {
-    return { error: 'Title must contain between 3 and 200 characters.' }
+    return { error: i18n.t('validation.exam.titleLength') }
   }
 
   if (!subjectId) {
-    return { error: 'Choose a subject.' }
+    return { error: i18n.t('validation.common.subjectRequired') }
   }
 
   if (!EXAM_TYPES.includes(values.type)) {
-    return { error: 'Choose a valid exam type.' }
+    return { error: i18n.t('validation.exam.type') }
   }
 
-  const duration = parseInteger(values.durationMinutes, 'Duration', {
+  const duration = parseInteger(values.durationMinutes, 'exam.fields.duration', {
     maximum: 1440,
     minimum: 1,
   })
   if (duration.error) return duration
 
-  const passingMarks = parseInteger(values.passingMarks, 'Passing marks', {
+  const passingMarks = parseInteger(values.passingMarks, 'exam.fields.passingMarks', {
     maximum: 1_000_000,
     minimum: 0,
   })
@@ -83,7 +96,7 @@ export function validateExamForm(values) {
 
   let tabSwitchLimit = null
   if (String(values.tabSwitchLimit).trim() !== '') {
-    const limit = parseInteger(values.tabSwitchLimit, 'Tab-switch limit', {
+    const limit = parseInteger(values.tabSwitchLimit, 'exam.fields.tabSwitchLimit', {
       maximum: 10_000,
       minimum: 0,
     })
@@ -112,19 +125,19 @@ export function validateSchedule(startValue, endValue) {
   const end = new Date(endValue)
 
   if (!startValue || Number.isNaN(start.getTime())) {
-    return { error: 'Choose a valid start date and time.' }
+    return { error: i18n.t('validation.exam.startDate') }
   }
 
   if (!endValue || Number.isNaN(end.getTime())) {
-    return { error: 'Choose a valid end date and time.' }
+    return { error: i18n.t('validation.exam.endDate') }
   }
 
   if (start.getTime() <= Date.now()) {
-    return { error: 'The scheduled start must be in the future.' }
+    return { error: i18n.t('validation.exam.startFuture') }
   }
 
   if (end.getTime() <= start.getTime()) {
-    return { error: 'The scheduled end must be after the start.' }
+    return { error: i18n.t('validation.exam.endAfterStart') }
   }
 
   return {
@@ -136,10 +149,12 @@ export function validateSchedule(startValue, endValue) {
 }
 
 export function formatDateTime(value) {
-  if (!value) return 'Not scheduled'
+  if (!value) return i18n.t('common.notScheduled')
 
   const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? 'Invalid date' : date.toLocaleString()
+  return Number.isNaN(date.getTime())
+    ? i18n.t('common.invalidDate')
+    : date.toLocaleString(i18n.language)
 }
 
 export function toDateTimeLocal(value) {
@@ -153,11 +168,11 @@ export function toDateTimeLocal(value) {
 }
 
 export function formatExamType(value) {
-  return value
-    ? value
-        .toLowerCase()
-        .split('_')
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(' ')
-    : 'Unknown'
+  if (!value) return i18n.t('common.unknown')
+
+  const typeKey = `exam.types.${value}`
+  if (i18n.exists(typeKey)) return i18n.t(typeKey)
+
+  const statusKey = `statuses.${value}`
+  return i18n.exists(statusKey) ? i18n.t(statusKey) : i18n.t('common.unknown')
 }

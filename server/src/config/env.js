@@ -39,6 +39,7 @@ export const env = Object.freeze({
   enableCronJobs: parseBoolean(process.env.ENABLE_CRON_JOBS, 'ENABLE_CRON_JOBS'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '1h',
   jwtSecret: process.env.JWT_SECRET,
+  logLevel: process.env.LOG_LEVEL,
   nodeEnv: process.env.NODE_ENV ?? 'development',
   port: parsedPort,
   smtp: Object.freeze({

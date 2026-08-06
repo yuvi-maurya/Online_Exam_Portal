@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import i18n from '../../i18n/index.js'
 
 const AUTO_FINALIZED_STATUSES = new Set(['AUTO_SUBMITTED', 'EVALUATED'])
 const RESTRICTED_CLIPBOARD_EVENTS = ['copy', 'cut', 'paste', 'contextmenu']
@@ -15,39 +16,39 @@ function toNonNegativeInteger(value) {
 function getWebcamFailure(error) {
   if (error?.name === 'NotAllowedError' || error?.name === 'SecurityError') {
     return {
-      message:
-        'Camera permission was denied. This attempt is not automatically blocked; product policy must decide whether camera denial should prevent starting the exam.',
+      message: i18n.t('student.security.webcam.errors.permissionDenied'),
       status: 'denied',
     }
   }
 
   if (error?.name === 'NotFoundError' || error?.name === 'OverconstrainedError') {
     return {
-      message:
-        'No usable camera was found. This attempt is not automatically blocked; product policy must decide whether missing camera access should prevent starting the exam.',
+      message: i18n.t('student.security.webcam.errors.notFound'),
       status: 'unavailable',
     }
   }
 
   return {
-    message:
-      'The camera preview could not be started. This attempt is not automatically blocked; product policy must decide whether this should prevent starting the exam.',
+    message: i18n.t('student.security.webcam.errors.startFailed'),
     status: 'error',
   }
 }
 
 function getTabSwitchWarning({ count, limit, remaining }) {
   if (remaining === null) {
-    return `Tab switch recorded${count === null ? '.' : ` (violation ${count}).`}`
+    return count === null
+      ? i18n.t('student.security.warnings.tabSwitchRecorded')
+      : i18n.t('student.security.warnings.tabSwitchRecordedWithCount', { count })
   }
 
   if (remaining === 0) {
-    return 'Tab switch recorded. No security events remain; another recorded event will automatically submit the exam.'
+    return i18n.t('student.security.warnings.noEventsRemaining')
   }
 
-  return `Tab switch recorded. ${remaining} of ${limit} allowed ${
-    remaining === 1 ? 'security event remains' : 'security events remain'
-  }.`
+  return i18n.t('student.security.warnings.eventsRemaining', {
+    count: remaining,
+    limit,
+  })
 }
 
 /**
@@ -204,8 +205,8 @@ export function useExamSecurity({
 
     if (wasAutoFinalized) {
       const finalizationMessage = response.limitExceeded
-        ? 'Security limit exceeded. Your exam was submitted automatically.'
-        : 'The exam time limit elapsed while the security event was being processed, so your attempt was submitted automatically.'
+        ? i18n.t('student.security.warnings.limitExceeded')
+        : i18n.t('student.security.warnings.timeElapsed')
 
       setWarning({
         message: finalizationMessage,
@@ -228,7 +229,7 @@ export function useExamSecurity({
               limit: normalizedTabSwitchLimitRef.current,
               remaining: reportedRemaining,
             })
-          : 'Full-screen exit recorded. Return to full-screen mode to continue the exam.',
+          : i18n.t('student.security.warnings.fullscreenExit'),
       tone: 'warning',
       type,
     })
@@ -245,8 +246,7 @@ export function useExamSecurity({
       } catch (error) {
         console.warn(`[Exam security] Failed to record ${type} violation.`, error)
         setWarning({
-          message:
-            'The security event could not be confirmed because of a connection problem. Your exam remains active.',
+          message: i18n.t('student.security.warnings.connectionFailure'),
           tone: 'warning',
           type,
         })
@@ -284,9 +284,7 @@ export function useExamSecurity({
 
     const rootElement = document.documentElement
     if (typeof rootElement?.requestFullscreen !== 'function') {
-      setFullscreenError(
-        'This browser does not support full-screen mode. Use a supported browser before continuing.',
-      )
+      setFullscreenError(i18n.t('student.security.fullscreen.errors.unsupported'))
       return Promise.resolve(false)
     }
 
@@ -314,8 +312,8 @@ export function useExamSecurity({
           setIsFullscreen(false)
           setFullscreenError(
             error?.name === 'NotAllowedError'
-              ? 'Full-screen access needs your confirmation. Select “Enter full-screen” to continue.'
-              : 'Full-screen mode could not be started. Try again before continuing.',
+              ? i18n.t('student.security.fullscreen.errors.confirmationRequired')
+              : i18n.t('student.security.fullscreen.errors.startFailed'),
           )
         }
         return false
@@ -482,8 +480,7 @@ export function useExamSecurity({
     async function startWebcamPreview() {
       if (!navigator.mediaDevices?.getUserMedia) {
         setWebcamState({
-          message:
-            'Camera access is unavailable in this browser. This attempt is not automatically blocked; product policy must decide whether this should prevent starting the exam.',
+          message: i18n.t('student.security.webcam.errors.unsupported'),
           policyDecisionRequired: true,
           status: 'unavailable',
         })

@@ -1,5 +1,6 @@
 import { Role } from '@prisma/client'
 import { Router } from 'express'
+import { bulkImportQuestions } from '../controllers/bulkImportController.js'
 import {
   archiveExam,
   attachQuestions,
@@ -24,6 +25,7 @@ import {
 import { getExamReport } from '../controllers/teacherReportController.js'
 import { listSubjects } from '../controllers/subjectController.js'
 import { requireAuth, requireRole } from '../middlewares/auth.js'
+import { uploadImportFile } from '../middlewares/importUpload.js'
 
 const teacherRouter = Router()
 
@@ -32,6 +34,7 @@ teacherRouter.use(requireAuth, requireRole(Role.TEACHER))
 teacherRouter.get('/subjects', listSubjects)
 
 teacherRouter.post('/questions', createQuestion)
+teacherRouter.post('/questions/bulk-import', uploadImportFile, bulkImportQuestions)
 teacherRouter.get('/questions', listQuestions)
 teacherRouter.get('/questions/:id', getQuestion)
 teacherRouter.patch('/questions/:id', updateQuestion)

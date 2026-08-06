@@ -16,6 +16,7 @@ export function createManagedUserController({ collectionKey, label, resourceKey,
   return Object.freeze({
     async activate(request, response) {
       const user = await setManagedUserActive({
+        actorId: request.user.userId,
         id: validateResourceId(request.params.id),
         isActive: true,
         role,
@@ -31,6 +32,7 @@ export function createManagedUserController({ collectionKey, label, resourceKey,
     async create(request, response) {
       const user = await createManagedUser({
         ...validateManagedUserCreate(request.body),
+        actorId: request.user.userId,
         role,
       })
 
@@ -43,6 +45,7 @@ export function createManagedUserController({ collectionKey, label, resourceKey,
 
     async deactivate(request, response) {
       const user = await setManagedUserActive({
+        actorId: request.user.userId,
         id: validateResourceId(request.params.id),
         isActive: false,
         role,

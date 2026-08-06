@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { AuthCard } from '../../components/auth/AuthCard.jsx'
 import { AuthError } from '../../components/auth/AuthFeedback.jsx'
@@ -9,7 +10,8 @@ import { apiClient, getApiErrorMessage } from '../../services/apiClient.js'
 import { normalizeEmail, validateEmail } from '../../utils/authValidation.js'
 
 export function ForgotPasswordPage() {
-  useDocumentTitle('Forgot password')
+  const { t } = useTranslation()
+  useDocumentTitle(t('auth.forgotPassword.documentTitle'))
 
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
@@ -36,13 +38,11 @@ export function ForgotPasswordPage() {
       })
       navigate(`/reset-password?email=${encodeURIComponent(normalizedEmail)}`, {
         state: {
-          notice:
-            response?.message ??
-            'If an account exists for that email, a password reset code has been sent.',
+          notice: response?.message ?? t('auth.forgotPassword.success'),
         },
       })
     } catch (error) {
-      setFormError(getApiErrorMessage(error, 'Unable to request a password reset.'))
+      setFormError(getApiErrorMessage(error, t('auth.forgotPassword.errors.submit')))
     } finally {
       setIsSubmitting(false)
     }
@@ -50,13 +50,16 @@ export function ForgotPasswordPage() {
 
   return (
     <AuthCard
-      description="We’ll send a six-digit reset code if an account exists for this email."
+      description={t('auth.forgotPassword.description')}
       footer={
-        <Link className="text-brand-400 hover:text-brand-100 font-semibold" to="/login">
-          Back to sign in
+        <Link
+          className="text-brand-600 hover:text-brand-500 dark:text-brand-400 dark:hover:text-brand-100 font-semibold"
+          to="/login"
+        >
+          {t('auth.backToSignIn')}
         </Link>
       }
-      title="Reset your password"
+      title={t('auth.forgotPassword.title')}
     >
       <form className="space-y-5" noValidate onSubmit={handleSubmit}>
         <AuthError message={formError} />
@@ -66,7 +69,7 @@ export function ForgotPasswordPage() {
           error={emailError}
           id="forgot-email"
           inputMode="email"
-          label="Email address"
+          label={t('auth.fields.email')}
           maxLength={254}
           name="email"
           onChange={(event) => {
@@ -74,13 +77,13 @@ export function ForgotPasswordPage() {
             setEmailError('')
             setFormError('')
           }}
-          placeholder="you@example.com"
+          placeholder={t('auth.placeholders.email')}
           required
           type="email"
           value={email}
         />
-        <SubmitButton isLoading={isSubmitting} loadingLabel="Sending code…">
-          Send reset code
+        <SubmitButton isLoading={isSubmitting} loadingLabel={t('auth.forgotPassword.sending')}>
+          {t('auth.forgotPassword.submit')}
         </SubmitButton>
       </form>
     </AuthCard>

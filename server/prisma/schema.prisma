@@ -80,6 +80,7 @@ model User {
   examAttempts       ExamAttempt[]       @relation("StudentAttempts")
   certificates       Certificate[]       @relation("StudentCertificates")
   notifications      Notification[]
+  auditLogs          AuditLog[]          @relation("AuditActor")
 }
 
 model VerificationToken {
@@ -298,5 +299,22 @@ model Notification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  action     String
+  entityType String
+  entityId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  actor User @relation("AuditActor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+  @@index([entityType, entityId])
   @@index([createdAt])
 }

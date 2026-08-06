@@ -1,6 +1,8 @@
 import { Role } from '@prisma/client'
 import { Router } from 'express'
+import { getAdminAuditLogs } from '../controllers/adminAuditController.js'
 import { getAdminDashboard } from '../controllers/adminDashboardController.js'
+import { bulkImportStudents } from '../controllers/bulkImportController.js'
 import {
   getAdminOverviewReport,
   getAdminSubjectWiseReport,
@@ -15,6 +17,7 @@ import {
   updateSubject,
 } from '../controllers/subjectController.js'
 import { requireAuth, requireRole } from '../middlewares/auth.js'
+import { uploadImportFile } from '../middlewares/importUpload.js'
 
 const adminRouter = Router()
 const studentController = createManagedUserController({
@@ -32,12 +35,14 @@ const teacherController = createManagedUserController({
 
 adminRouter.use(requireAuth, requireRole(Role.ADMIN))
 
+adminRouter.get('/audit-logs', getAdminAuditLogs)
 adminRouter.get('/dashboard', getAdminDashboard)
 adminRouter.get('/reports/overview', getAdminOverviewReport)
 adminRouter.get('/reports/subject-wise', getAdminSubjectWiseReport)
 adminRouter.get('/reports/top-performers', getAdminTopPerformersReport)
 
 adminRouter.post('/students', studentController.create)
+adminRouter.post('/students/bulk-import', uploadImportFile, bulkImportStudents)
 adminRouter.get('/students', studentController.list)
 adminRouter.get('/students/:id', studentController.getOne)
 adminRouter.patch('/students/:id', studentController.update)

@@ -4,6 +4,7 @@ import { PublicLayout } from '../layouts/PublicLayout.jsx'
 import { RoleLayout } from '../layouts/RoleLayout.jsx'
 import { StudentLayout } from '../layouts/StudentLayout.jsx'
 import { TeacherLayout } from '../layouts/TeacherLayout.jsx'
+import { CertificateVerificationPage } from '../pages/CertificateVerificationPage.jsx'
 import { HomePage } from '../pages/HomePage.jsx'
 import { NotFoundPage } from '../pages/NotFoundPage.jsx'
 import { AdminDashboardPage } from '../pages/admin/AdminDashboardPage.jsx'
@@ -17,6 +18,7 @@ import { RegisterPage } from '../pages/auth/RegisterPage.jsx'
 import { ResetPasswordPage } from '../pages/auth/ResetPasswordPage.jsx'
 import { VerifyEmailPage } from '../pages/auth/VerifyEmailPage.jsx'
 import { StudentAttemptPage } from '../pages/student/StudentAttemptPage.jsx'
+import { StudentCertificatesPage } from '../pages/student/StudentCertificatesPage.jsx'
 import { StudentDashboardPage } from '../pages/student/StudentDashboardPage.jsx'
 import { StudentHistoryPage } from '../pages/student/StudentHistoryPage.jsx'
 import { StudentProfilePage } from '../pages/student/StudentProfilePage.jsx'
@@ -41,6 +43,7 @@ export function AppRoutes() {
           <Route path="verify-email" element={<VerifyEmailPage />} />
           <Route path="forgot-password" element={<ForgotPasswordPage />} />
           <Route path="reset-password" element={<ResetPasswordPage />} />
+          <Route path="verify-certificate" element={<CertificateVerificationPage />} />
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={['admin']} />} path="/admin">
@@ -73,6 +76,7 @@ export function AppRoutes() {
           <Route element={<RoleLayout role="student" />}>
             <Route element={<StudentLayout />}>
               <Route index element={<StudentDashboardPage />} />
+              <Route path="certificates" element={<StudentCertificatesPage />} />
               <Route path="history" element={<StudentHistoryPage />} />
               <Route path="profile" element={<StudentProfilePage />} />
               <Route path="attempts/:id" element={<StudentAttemptPage />} />

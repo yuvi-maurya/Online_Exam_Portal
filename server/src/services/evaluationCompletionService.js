@@ -1,3 +1,4 @@
+import { logger } from '../config/logger.js'
 import { reconcileAttemptCertificateSafely } from './certificateIssuanceService.js'
 import { publishResultNotificationSafely } from './notificationDeliveryService.js'
 
@@ -19,7 +20,7 @@ export async function runEvaluationPostCommitEffectsSafely({
 
   for (const outcome of outcomes) {
     if (outcome.status === 'rejected') {
-      console.error('A post-evaluation effect failed:', outcome.reason)
+      logger.error({ err: outcome.reason }, 'A post-evaluation effect failed')
     }
   }
 }

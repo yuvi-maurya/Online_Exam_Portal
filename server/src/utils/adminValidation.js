@@ -5,6 +5,7 @@ const MAX_PAGE = 100_000
 const MAX_PAGE_SIZE = 100
 const DEFAULT_PAGE_SIZE = 20
 const SUBJECT_CODE_PATTERN = /^[A-Z0-9][A-Z0-9_-]{1,29}$/
+const MANAGED_USER_LIST_QUERY_FIELDS = new Set(['limit', 'page', 'search'])
 
 function validationError(message, field) {
   return new AppError(message, 400, 'VALIDATION_ERROR', { field })
@@ -126,6 +127,8 @@ export function validateManagedUserUpdate(body) {
 }
 
 export function validatePagination(query) {
+  assertAllowedFields(query, MANAGED_USER_LIST_QUERY_FIELDS)
+
   const page = parsePositiveInteger(query.page, {
     defaultValue: 1,
     field: 'page',
@@ -151,11 +154,17 @@ export function validatePagination(query) {
 }
 
 export function validateResourceId(value) {
-  if (typeof value !== 'string' || value.length === 0 || value.length > 100) {
+  if (typeof value !== 'string') {
     throw validationError('A valid resource id is required', 'id')
   }
 
-  return value
+  const id = value.trim()
+
+  if (id.length === 0 || id.length > 100) {
+    throw validationError('A valid resource id is required', 'id')
+  }
+
+  return id
 }
 
 export function validateSubjectCreate(body) {

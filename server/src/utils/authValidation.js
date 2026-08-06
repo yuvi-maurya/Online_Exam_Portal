@@ -15,6 +15,14 @@ function assertBody(body) {
   }
 }
 
+function assertAllowedFields(body, allowedFields) {
+  const unsupportedField = Object.keys(body).find((field) => !allowedFields.has(field))
+
+  if (unsupportedField) {
+    throw validationError(`${unsupportedField} is not an allowed field`, unsupportedField)
+  }
+}
+
 export function validateEmail(value) {
   if (typeof value !== 'string') {
     throw validationError('Email is required', 'email')
@@ -96,6 +104,8 @@ export function validateRegistration(body) {
     )
   }
 
+  assertAllowedFields(body, new Set(['email', 'name', 'password']))
+
   return {
     email: validateEmail(body.email),
     name: validateName(body.name),
@@ -105,6 +115,7 @@ export function validateRegistration(body) {
 
 export function validateEmailOtp(body) {
   assertBody(body)
+  assertAllowedFields(body, new Set(['email', 'otp']))
 
   return {
     email: validateEmail(body.email),
@@ -114,11 +125,14 @@ export function validateEmailOtp(body) {
 
 export function validateEmailOnly(body) {
   assertBody(body)
+  assertAllowedFields(body, new Set(['email']))
+
   return { email: validateEmail(body.email) }
 }
 
 export function validateLogin(body) {
   assertBody(body)
+  assertAllowedFields(body, new Set(['email', 'password']))
 
   return {
     email: validateEmail(body.email),
@@ -128,6 +142,7 @@ export function validateLogin(body) {
 
 export function validatePasswordReset(body) {
   assertBody(body)
+  assertAllowedFields(body, new Set(['email', 'newPassword', 'otp']))
 
   return {
     email: validateEmail(body.email),

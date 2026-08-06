@@ -1,4 +1,6 @@
 import { apiClient } from './apiClient.js'
+import i18n from '../i18n/index.js'
+import { normalizeBulkImportSummary } from '../utils/bulkImport.js'
 
 export const teacherQueryKeys = Object.freeze({
   exam(id) {
@@ -23,7 +25,7 @@ export const teacherQueryKeys = Object.freeze({
 
 function getResponseData(response) {
   if (!response?.data || typeof response.data !== 'object') {
-    throw new Error('The server returned an invalid response')
+    throw new Error(i18n.t('errors.invalidResponse'))
   }
 
   return response.data
@@ -62,6 +64,14 @@ export async function getTeacherQuestion(id) {
 
 export async function createTeacherQuestion(question) {
   return getResponseData(await apiClient.post('/teacher/questions', question)).question
+}
+
+export async function bulkImportTeacherQuestions(file) {
+  const formData = new FormData()
+  formData.set('file', file)
+  const data = getResponseData(await apiClient.post('/teacher/questions/bulk-import', formData))
+
+  return normalizeBulkImportSummary(data)
 }
 
 export async function updateTeacherQuestion(id, changes) {
@@ -134,4 +144,8 @@ export async function gradeTeacherAnswer(attemptId, questionId, marksAwarded) {
 
 export async function getTeacherExamReport(id) {
   return getResponseData(await apiClient.get(`/teacher/exams/${id}/report`)).report
+}
+
+export async function downloadTeacherExamReportCsv(id) {
+  return apiClient.getBlob(`/teacher/exams/${id}/report?format=csv`)
 }

@@ -1,5 +1,6 @@
 import cron from 'node-cron'
 import { AttemptStatus, ExamStatus, Role } from '@prisma/client'
+import { logger } from '../config/logger.js'
 import { prisma } from '../config/prisma.js'
 import {
   publishPendingGradingReminderSafely,
@@ -129,7 +130,7 @@ async function runReminderPhase(name, operation) {
   try {
     return await operation()
   } catch (error) {
-    console.error(`${name} notification reminder phase failed:`, error)
+    logger.error({ err: error, phase: name }, 'Notification reminder phase failed')
     return { candidates: 0, created: 0, failed: true }
   }
 }
@@ -154,7 +155,7 @@ export function startNotificationReminderJob() {
       try {
         await runNotificationReminderJob()
       } catch (error) {
-        console.error('Notification reminder job failed:', error)
+        logger.error({ err: error }, 'Notification reminder job failed')
       }
     },
     {
@@ -165,7 +166,10 @@ export function startNotificationReminderJob() {
     },
   )
 
-  console.info('Notification reminder job scheduled hourly')
+  logger.info(
+    { schedule: REMINDER_SCHEDULE, timezone: 'UTC' },
+    'Notification reminder job scheduled',
+  )
   return task
 }
 

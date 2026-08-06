@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: exam-portal-api
+    runtime: node
+    rootDir: server
+    buildCommand: npm ci && npx prisma migrate deploy
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ENABLE_CRON_JOBS
+        value: "true"
+      - key: LOG_LEVEL
+        value: info
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        sync: false
+      - key: CLIENT_URL
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+
+# Render supplies PORT automatically; do not configure it manually.
+# The first-admin bootstrap variables are intentionally not runtime service variables.
+# Set these only for the explicit, one-time `npm run create-first-admin` command,
+# then remove them from Render: SEED_ADMIN_NAME, SEED_ADMIN_EMAIL,
+# SEED_ADMIN_PASSWORD, CREATE_FIRST_ADMIN_CONFIRMATION.

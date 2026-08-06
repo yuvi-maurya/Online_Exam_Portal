@@ -1,10 +1,12 @@
 import { apiClient } from './apiClient.js'
+import i18n from '../i18n/index.js'
 
 export const studentQueryKeys = Object.freeze({
   attempt(id) {
     return ['student', 'attempts', id]
   },
   availableExams: ['student', 'exams', 'available'],
+  certificates: ['student', 'certificates'],
   examHistory: ['student', 'exams', 'history'],
   result(id) {
     return ['student', 'attempts', id, 'result']
@@ -13,7 +15,7 @@ export const studentQueryKeys = Object.freeze({
 
 function getResponseData(response) {
   if (!response?.data || typeof response.data !== 'object') {
-    throw new Error('The server returned an invalid response')
+    throw new Error(i18n.t('errors.invalidResponse'))
   }
 
   return response.data
@@ -23,7 +25,7 @@ function getResponseArray(response, field) {
   const value = getResponseData(response)[field]
 
   if (!Array.isArray(value)) {
-    throw new Error('The server returned an invalid response')
+    throw new Error(i18n.t('errors.invalidResponse'))
   }
 
   return value
@@ -35,6 +37,10 @@ export async function getAvailableExams() {
 
 export async function getExamHistory() {
   return getResponseArray(await apiClient.get('/student/exams/history'), 'attempts')
+}
+
+export async function getStudentCertificates() {
+  return getResponseArray(await apiClient.get('/student/certificates'), 'certificates')
 }
 
 export async function startExam(examId) {

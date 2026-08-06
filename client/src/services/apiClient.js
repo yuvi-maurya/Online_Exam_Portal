@@ -1,4 +1,5 @@
 import { clearStoredSession, getStoredSession } from './authSession.js'
+import i18n from '../i18n/index.js'
 
 const DEFAULT_API_URL = 'http://localhost:5000/api'
 const configuredApiUrl = import.meta.env.VITE_API_URL?.trim()
@@ -23,7 +24,9 @@ function buildUrl(path) {
 function buildHeaders(headers, body, token) {
   const requestHeaders = new Headers(headers)
 
-  requestHeaders.set('Accept', 'application/json')
+  if (!requestHeaders.has('Accept')) {
+    requestHeaders.set('Accept', 'application/json')
+  }
 
   if (token) {
     requestHeaders.set('Authorization', `Bearer ${token}`)
@@ -44,9 +47,13 @@ function serializeBody(body) {
   return JSON.stringify(body)
 }
 
-async function parseResponse(response) {
+async function parseResponse(response, responseType) {
   if (response.status === 204) {
     return null
+  }
+
+  if (responseType === 'blob') {
+    return response.blob()
   }
 
   const contentType = response.headers.get('content-type') ?? ''
@@ -68,14 +75,14 @@ function redirectToLogin() {
 }
 
 async function request(path, options = {}) {
-  const { body, headers, ...fetchOptions } = options
+  const { body, headers, responseType, ...fetchOptions } = options
   const requestToken = getStoredSession()?.token ?? null
   const response = await fetch(buildUrl(path), {
     ...fetchOptions,
     body: serializeBody(body),
     headers: buildHeaders(headers, body, requestToken),
   })
-  const payload = await parseResponse(response)
+  const payload = await parseResponse(response, response.ok ? responseType : undefined)
 
   if (!response.ok) {
     const currentToken = getStoredSession()?.token ?? null
@@ -88,7 +95,7 @@ async function request(path, options = {}) {
     throw new ApiError({
       code: payload?.error?.code ?? 'REQUEST_FAILED',
       details: payload?.error?.details,
-      message: payload?.error?.message ?? payload?.message ?? 'Unable to complete the request',
+      message: payload?.error?.message ?? payload?.message ?? i18n.t('errors.requestFailed'),
       status: response.status,
     })
   }
@@ -103,6 +110,12 @@ export const apiClient = {
   get(path, options) {
     return request(path, { ...options, method: 'GET' })
   },
+  getBlob(path, options = {}) {
+    const headers = new Headers(options.headers)
+    headers.set('Accept', 'text/csv')
+
+    return request(path, { ...options, headers, method: 'GET', responseType: 'blob' })
+  },
   patch(path, body, options) {
     return request(path, { ...options, body, method: 'PATCH' })
   },
@@ -115,6 +128,6 @@ export const apiClient = {
   request,
 }
 
-export function getApiErrorMessage(error, fallback = 'Something went wrong. Please try again.') {
+export function getApiErrorMessage(error, fallback = i18n.t('errors.generic')) {
   return error instanceof ApiError && error.message ? error.message : fallback
 }

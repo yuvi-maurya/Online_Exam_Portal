@@ -56,7 +56,10 @@ export async function updateSubject(request, response) {
 }
 
 export async function deleteSubject(request, response) {
-  const subject = await deleteSubjectRecord(validateResourceId(request.params.id))
+  const subject = await deleteSubjectRecord({
+    actorId: request.user.userId,
+    id: validateResourceId(request.params.id),
+  })
 
   response.status(200).json({
     status: 'success',

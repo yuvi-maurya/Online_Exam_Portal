@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { ExamCreateForm } from '../../components/teacher/exams/ExamCreateForm.jsx'
 import { ExamList } from '../../components/teacher/exams/ExamList.jsx'
@@ -17,26 +18,34 @@ import { formatExamType } from '../../utils/teacherExamValidation.js'
 import { formatSubjectLabel } from '../../utils/teacherSubject.js'
 
 const filterClassName =
-  'rounded-xl border border-slate-700 bg-slate-950/70 px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15'
+  'rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 dark:border-slate-700 dark:bg-slate-950/70 dark:text-white dark:placeholder:text-slate-600'
 
 function QueryError({ message, onRetry }) {
+  const { t } = useTranslation()
+
   return (
-    <div className="rounded-2xl border border-rose-500/25 bg-rose-500/10 p-5" role="alert">
-      <p className="font-medium text-rose-100">Unable to load exams</p>
-      <p className="mt-1 text-sm text-rose-200/75">{message}</p>
+    <div
+      className="rounded-2xl border border-rose-300 bg-rose-50 p-5 dark:border-rose-500/25 dark:bg-rose-500/10"
+      role="alert"
+    >
+      <p className="font-medium text-rose-800 dark:text-rose-100">
+        {t('teacher.exams.errors.loadTitle')}
+      </p>
+      <p className="mt-1 text-sm text-rose-700 dark:text-rose-200/75">{message}</p>
       <button
-        className="mt-4 rounded-lg border border-rose-400/30 px-3 py-2 text-sm font-semibold text-rose-100 transition hover:bg-rose-500/15"
+        className="mt-4 rounded-lg border border-rose-400 px-3 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-400/30 dark:text-rose-100 dark:hover:bg-rose-500/15"
         onClick={onRetry}
         type="button"
       >
-        Try again
+        {t('common.tryAgain')}
       </button>
     </div>
   )
 }
 
 export function TeacherExamsPage() {
-  useDocumentTitle('Teacher exams')
+  const { t } = useTranslation()
+  useDocumentTitle(t('teacher.exams.documentTitle'))
 
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -59,7 +68,7 @@ export function TeacherExamsPage() {
   const createMutation = useMutation({
     mutationFn: createTeacherExam,
     onError: (error) => {
-      setFormError(getApiErrorMessage(error, 'Unable to create this exam.'))
+      setFormError(getApiErrorMessage(error, t('teacher.exams.errors.create')))
     },
     onSuccess: async (exam) => {
       await queryClient.invalidateQueries({ queryKey: teacherQueryKeys.exams })
@@ -70,26 +79,26 @@ export function TeacherExamsPage() {
   const archiveMutation = useMutation({
     mutationFn: archiveTeacherExam,
     onError: (error) => {
-      setActionError(getApiErrorMessage(error, 'Unable to archive this exam.'))
+      setActionError(getApiErrorMessage(error, t('teacher.exams.errors.archive')))
     },
     onSuccess: async (exam) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: teacherQueryKeys.exams }),
         queryClient.invalidateQueries({ queryKey: teacherQueryKeys.exam(exam.id) }),
       ])
-      setNotice(`${exam.title} was archived.`)
+      setNotice(t('teacher.exams.notices.archived', { title: exam.title }))
     },
   })
 
   const deleteMutation = useMutation({
     mutationFn: deleteTeacherExam,
     onError: (error) => {
-      setActionError(getApiErrorMessage(error, 'Unable to delete this draft.'))
+      setActionError(getApiErrorMessage(error, t('teacher.exams.errors.delete')))
     },
     onSuccess: async (exam) => {
       await queryClient.invalidateQueries({ queryKey: teacherQueryKeys.exams })
       queryClient.removeQueries({ queryKey: teacherQueryKeys.exam(exam.id) })
-      setNotice(`${exam.title} was deleted.`)
+      setNotice(t('teacher.exams.notices.deleted', { title: exam.title }))
     },
   })
 
@@ -139,7 +148,7 @@ export function TeacherExamsPage() {
   }
 
   function archiveExam(exam) {
-    if (!window.confirm(`Archive “${exam.title}”? Students will no longer see it as available.`)) {
+    if (!window.confirm(t('teacher.exams.confirmArchive', { title: exam.title }))) {
       return
     }
 
@@ -149,7 +158,7 @@ export function TeacherExamsPage() {
   }
 
   function deleteExam(exam) {
-    if (!window.confirm(`Permanently delete the unused draft “${exam.title}”?`)) return
+    if (!window.confirm(t('teacher.exams.confirmDelete', { title: exam.title }))) return
 
     setActionError('')
     setNotice('')
@@ -160,13 +169,14 @@ export function TeacherExamsPage() {
     <main className="px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
       <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-3xl">
-          <p className="text-brand-400 text-xs font-semibold tracking-[0.18em] uppercase">
-            Exam management
+          <p className="text-brand-700 dark:text-brand-400 text-xs font-semibold tracking-[0.18em] uppercase">
+            {t('teacher.exams.eyebrow')}
           </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">Exams</h1>
-          <p className="mt-3 leading-7 text-slate-400">
-            Build draft exams, configure security, schedule delivery, and publish when every
-            requirement is ready.
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl dark:text-white">
+            {t('common.exams')}
+          </h1>
+          <p className="mt-3 leading-7 text-slate-600 dark:text-slate-400">
+            {t('teacher.exams.description')}
           </p>
         </div>
         <button
@@ -180,13 +190,13 @@ export function TeacherExamsPage() {
           onClick={startCreating}
           type="button"
         >
-          Create exam
+          {t('teacher.exams.create')}
         </button>
       </header>
 
       {notice ? (
         <div
-          className="mt-7 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
+          className="mt-7 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-100"
           role="status"
         >
           {notice}
@@ -194,7 +204,7 @@ export function TeacherExamsPage() {
       ) : null}
       {actionError ? (
         <div
-          className="mt-7 rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100"
+          className="mt-7 rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/25 dark:bg-rose-500/10 dark:text-rose-100"
           role="alert"
         >
           {actionError}
@@ -203,35 +213,37 @@ export function TeacherExamsPage() {
 
       {subjectsQuery.isError ? (
         <div
-          className="mt-7 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100"
+          className="mt-7 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/25 dark:bg-rose-500/10 dark:text-rose-100"
           role="alert"
         >
           <span>
-            {getApiErrorMessage(subjectsQuery.error, 'Unable to load the available subjects.')}
+            {getApiErrorMessage(subjectsQuery.error, t('teacher.questions.errors.subjects'))}
           </span>
           <button
-            className="rounded-lg border border-rose-400/30 px-3 py-1.5 text-xs font-semibold transition hover:bg-rose-500/15"
+            className="rounded-lg border border-rose-400 px-3 py-1.5 text-xs font-semibold transition hover:bg-rose-100 dark:border-rose-400/30 dark:hover:bg-rose-500/15"
             onClick={() => subjectsQuery.refetch()}
             type="button"
           >
-            Retry
+            {t('common.retry')}
           </button>
         </div>
       ) : subjectsQuery.isSuccess && subjects.length === 0 ? (
         <p
-          className="mt-7 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
+          className="mt-7 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-100"
           role="status"
         >
-          No subjects are available yet. Ask an administrator to create one before adding an exam.
+          {t('teacher.exams.noSubjects')}
         </p>
       ) : null}
 
       {isCreating ? (
-        <section className="mt-7 rounded-2xl border border-slate-800 bg-slate-900/55 p-5 sm:p-6">
+        <section className="mt-7 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900/55">
           <div className="mb-5">
-            <h2 className="text-lg font-semibold text-white">Create an exam draft</h2>
-            <p className="mt-1 text-sm text-slate-400">
-              Scheduling and question attachment happen in the builder after the draft is saved.
+            <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+              {t('teacher.exams.createDraftTitle')}
+            </h2>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              {t('teacher.exams.createDraftDescription')}
             </p>
           </div>
           <ExamCreateForm
@@ -249,33 +261,35 @@ export function TeacherExamsPage() {
         </section>
       ) : null}
 
-      <section className="mt-7 rounded-2xl border border-slate-800 bg-slate-900/55 p-5 sm:p-6">
+      <section className="mt-7 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900/55">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-white">Your exams</h2>
-            <p className="mt-1 text-sm text-slate-400">
-              Counts and statuses are loaded from your teacher workspace.
+            <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+              {t('teacher.exams.yourExams')}
+            </h2>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              {t('teacher.exams.listDescription')}
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-[minmax(12rem,1fr)_11rem]">
-            <label className="text-xs font-medium text-slate-400">
-              Search
+            <label className="text-xs font-medium text-slate-600 dark:text-slate-400">
+              {t('common.search')}
               <input
                 className={`mt-1.5 ${filterClassName}`}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Title or subject name"
+                placeholder={t('teacher.exams.searchPlaceholder')}
                 type="search"
                 value={search}
               />
             </label>
-            <label className="text-xs font-medium text-slate-400">
-              Status
+            <label className="text-xs font-medium text-slate-600 dark:text-slate-400">
+              {t('common.status')}
               <select
                 className={`mt-1.5 ${filterClassName}`}
                 onChange={(event) => setStatus(event.target.value)}
                 value={status}
               >
-                <option value="">All statuses</option>
+                <option value="">{t('teacher.exams.allStatuses')}</option>
                 {statusOptions.map((option) => (
                   <option key={option} value={option}>
                     {formatExamType(option)}
@@ -288,17 +302,17 @@ export function TeacherExamsPage() {
 
         <div className="mt-5">
           {examsQuery.isPending ? (
-            <div className="grid gap-4 xl:grid-cols-2" aria-label="Loading exams">
+            <div className="grid gap-4 xl:grid-cols-2" aria-label={t('teacher.exams.loading')}>
               {[0, 1].map((index) => (
                 <div
-                  className="h-72 animate-pulse rounded-2xl border border-slate-800 bg-slate-950/45"
+                  className="h-72 animate-pulse rounded-2xl border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-950/45"
                   key={index}
                 />
               ))}
             </div>
           ) : examsQuery.isError ? (
             <QueryError
-              message={getApiErrorMessage(examsQuery.error, 'Your exams could not be loaded.')}
+              message={getApiErrorMessage(examsQuery.error, t('teacher.dashboard.errors.exams'))}
               onRetry={() => examsQuery.refetch()}
             />
           ) : (

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { AuthCard } from '../../components/auth/AuthCard.jsx'
 import { AuthError, AuthNotice } from '../../components/auth/AuthFeedback.jsx'
@@ -15,7 +16,8 @@ import {
 } from '../../utils/authValidation.js'
 
 export function ResetPasswordPage() {
-  useDocumentTitle('Choose a new password')
+  const { t } = useTranslation()
+  useDocumentTitle(t('auth.resetPassword.documentTitle'))
 
   const [searchParams] = useSearchParams()
   const location = useLocation()
@@ -62,10 +64,10 @@ export function ResetPasswordPage() {
       })
       navigate('/login', {
         replace: true,
-        state: { notice: 'Password reset successfully. Sign in with your new password.' },
+        state: { notice: t('auth.resetPassword.success') },
       })
     } catch (error) {
-      setFormError(getApiErrorMessage(error, 'Unable to reset your password.'))
+      setFormError(getApiErrorMessage(error, t('auth.resetPassword.errors.submit')))
     } finally {
       setIsSubmitting(false)
     }
@@ -73,13 +75,16 @@ export function ResetPasswordPage() {
 
   return (
     <AuthCard
-      description="Enter the code from your email and choose a new password."
+      description={t('auth.resetPassword.description')}
       footer={
-        <Link className="text-brand-400 hover:text-brand-100 font-semibold" to="/login">
-          Back to sign in
+        <Link
+          className="text-brand-600 hover:text-brand-500 dark:text-brand-400 dark:hover:text-brand-100 font-semibold"
+          to="/login"
+        >
+          {t('auth.backToSignIn')}
         </Link>
       }
-      title="Choose a new password"
+      title={t('auth.resetPassword.title')}
     >
       <form className="space-y-5" noValidate onSubmit={handleSubmit}>
         <AuthNotice message={notice} />
@@ -90,11 +95,11 @@ export function ResetPasswordPage() {
           error={fieldErrors.email}
           id="reset-email"
           inputMode="email"
-          label="Email address"
+          label={t('auth.fields.email')}
           maxLength={254}
           name="email"
           onChange={updateField}
-          placeholder="you@example.com"
+          placeholder={t('auth.placeholders.email')}
           required
           type="email"
           value={values.email}
@@ -105,7 +110,7 @@ export function ResetPasswordPage() {
           error={fieldErrors.otp}
           id="reset-otp"
           inputMode="numeric"
-          label="Reset code"
+          label={t('auth.fields.resetCode')}
           maxLength={6}
           name="otp"
           onChange={updateField}
@@ -119,17 +124,17 @@ export function ResetPasswordPage() {
           autoComplete="new-password"
           disabled={isSubmitting}
           error={fieldErrors.newPassword}
-          helperText="Use 8 or more characters with at least one letter and one number."
+          helperText={t('auth.passwordHint')}
           id="reset-new-password"
-          label="New password"
+          label={t('auth.fields.newPassword')}
           name="newPassword"
           onChange={updateField}
           required
           type="password"
           value={values.newPassword}
         />
-        <SubmitButton isLoading={isSubmitting} loadingLabel="Updating password…">
-          Update password
+        <SubmitButton isLoading={isSubmitting} loadingLabel={t('auth.resetPassword.updating')}>
+          {t('auth.resetPassword.submit')}
         </SubmitButton>
       </form>
     </AuthCard>

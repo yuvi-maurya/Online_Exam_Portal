@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { AttemptResult, AttemptStatus } from '@prisma/client'
+import { logger } from '../config/logger.js'
 import { prisma } from '../config/prisma.js'
 import { generateCertificatePdf } from '../utils/certificatePdf.js'
 import { deleteCertificatePdf, uploadCertificatePdf } from './certificateStorageService.js'
@@ -130,7 +131,7 @@ async function deleteAssetSafely({ attemptId, evaluatedAt }) {
   try {
     await deleteCertificatePdf({ attemptId, evaluatedAt })
   } catch (error) {
-    console.error(`Certificate asset deletion failed for attempt ${attemptId}:`, error)
+    logger.error({ attemptId, err: error }, 'Certificate asset deletion failed')
   }
 }
 
@@ -425,7 +426,7 @@ export function reconcileAttemptCertificateSafely(attemptId) {
 
       return outcome
     } catch (error) {
-      console.error(`Certificate reconciliation failed for attempt ${attemptId}:`, error)
+      logger.error({ attemptId, err: error }, 'Certificate reconciliation failed')
       return { certificate: null, created: false, reason: 'RECONCILIATION_FAILED' }
     } finally {
       if (inFlightReconciliations.get(attemptId) === entry) {
@@ -485,6 +486,6 @@ export async function reconcileStudentCertificatesSafely(studentId) {
       await Promise.all(batch.map((attempt) => reconcileAttemptCertificateSafely(attempt.id)))
     }
   } catch (error) {
-    console.error(`Certificate reconciliation failed for student ${studentId}:`, error)
+    logger.error({ err: error, studentId }, 'Student certificate reconciliation failed')
   }
 }

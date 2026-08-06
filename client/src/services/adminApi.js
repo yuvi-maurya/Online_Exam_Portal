@@ -1,4 +1,6 @@
 import { apiClient } from './apiClient.js'
+import i18n from '../i18n/index.js'
+import { normalizeBulkImportSummary } from '../utils/bulkImport.js'
 
 const MANAGED_USER_RESOURCES = new Set(['students', 'teachers'])
 
@@ -15,13 +17,13 @@ export const adminQueryKeys = Object.freeze({
 
 function assertManagedUserResource(resource) {
   if (!MANAGED_USER_RESOURCES.has(resource)) {
-    throw new TypeError('Unsupported managed user resource')
+    throw new TypeError(i18n.t('errors.unsupportedManagedUserResource'))
   }
 }
 
 function getResponseData(response) {
   if (!response?.data || typeof response.data !== 'object') {
-    throw new Error('The server returned an invalid response')
+    throw new Error(i18n.t('errors.invalidResponse'))
   }
 
   return response.data
@@ -56,6 +58,14 @@ export async function createManagedUser(resource, user) {
   return getResponseData(await apiClient.post(`/admin/${resource}`, user))
 }
 
+export async function bulkImportStudents(file) {
+  const formData = new FormData()
+  formData.set('file', file)
+  const data = getResponseData(await apiClient.post('/admin/students/bulk-import', formData))
+
+  return normalizeBulkImportSummary(data)
+}
+
 export async function setManagedUserActive(resource, id, isActive) {
   assertManagedUserResource(resource)
   const action = isActive ? 'activate' : 'deactivate'
@@ -84,4 +94,12 @@ export async function getSubjectWiseReport() {
 
 export async function getTopPerformers() {
   return getResponseData(await apiClient.get('/admin/reports/top-performers')).topPerformers
+}
+
+export async function downloadAdminReportCsv(report) {
+  if (!['overview', 'subject-wise'].includes(report)) {
+    throw new TypeError(i18n.t('errors.unsupportedAdminReportExport'))
+  }
+
+  return apiClient.getBlob(`/admin/reports/${report}?format=csv`)
 }

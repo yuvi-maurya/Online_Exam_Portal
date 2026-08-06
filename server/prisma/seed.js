@@ -1,4 +1,5 @@
 import { PrismaClient, Role } from '@prisma/client'
+import { logger } from '../src/config/logger.js'
 import { hashPassword } from '../src/utils/password.js'
 
 const prisma = new PrismaClient()
@@ -77,15 +78,20 @@ async function main() {
     },
   })
 
-  console.info(
-    `Seeded users (${admin.email}, ${teacher.email}, ${student.email}) and subject ${subject.code}.`,
+  logger.info(
+    {
+      roles: [admin.role, teacher.role, student.role],
+      subjectCode: subject.code,
+      userCount: seededUsers.length,
+    },
+    'Demo data seeded',
   )
 }
 
 try {
   await main()
 } catch (error) {
-  console.error('Database seeding failed:', error)
+  logger.error({ err: error }, 'Database seeding failed')
   process.exitCode = 1
 } finally {
   await prisma.$disconnect()

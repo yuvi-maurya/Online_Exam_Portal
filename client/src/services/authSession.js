@@ -1,3 +1,5 @@
+import i18n from '../i18n/index.js'
+
 const SESSION_STORAGE_KEY = 'exam-portal.auth-session'
 
 export const AUTH_SESSION_CHANGED_EVENT = 'exam-portal:auth-session-changed'
@@ -65,7 +67,7 @@ export function getStoredSession() {
 
 export function storeSession(session) {
   if (!isSession(session)) {
-    throw new TypeError('A valid authenticated session is required')
+    throw new TypeError(i18n.t('errors.invalidSession'))
   }
 
   memorySession = session

@@ -1,12 +1,15 @@
 import { ManagedUsersPage } from './ManagedUsersPage.jsx'
+import { useTranslation } from 'react-i18next'
 
 export function AdminTeachersPage() {
+  const { t } = useTranslation()
+
   return (
     <ManagedUsersPage
-      description="Create teacher accounts, search the directory, and manage each teacher's access to Exam Portal."
-      entityLabel="Teacher"
+      description={t('admin.teachers.description')}
+      entityLabel={t('roles.TEACHER')}
       resource="teachers"
-      title="Teachers"
+      title={t('common.teachers')}
     />
   )
 }

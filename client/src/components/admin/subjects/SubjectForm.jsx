@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   buildSubjectPayload,
   validateSubjectValues,
@@ -17,18 +18,21 @@ function SubjectField({ error, id, label, ...inputProps }) {
 
   return (
     <div>
-      <label className="mb-2 block text-sm font-medium text-slate-200" htmlFor={id}>
+      <label
+        className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200"
+        htmlFor={id}
+      >
         {label}
       </label>
       <input
         {...inputProps}
         aria-describedby={errorId}
         aria-invalid={Boolean(error)}
-        className="focus:border-brand-400 focus:ring-brand-500/20 w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3.5 py-3 text-sm text-white transition outline-none placeholder:text-slate-600 focus:ring-4 disabled:cursor-not-allowed disabled:opacity-60"
+        className="focus:border-brand-400 focus:ring-brand-500/20 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm text-slate-950 transition outline-none placeholder:text-slate-400 focus:ring-4 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950/70 dark:text-white dark:placeholder:text-slate-600"
         id={id}
       />
       {error ? (
-        <p className="mt-1.5 text-sm text-rose-300" id={errorId}>
+        <p className="mt-1.5 text-sm text-rose-700 dark:text-rose-300" id={errorId}>
           {error}
         </p>
       ) : null}
@@ -37,6 +41,7 @@ function SubjectField({ error, id, label, ...inputProps }) {
 }
 
 export function SubjectForm({ error, isPending, mode, onCancel, onClearError, onSubmit, subject }) {
+  const { t } = useTranslation()
   const [values, setValues] = useState(() => getInitialValues(subject))
   const [fieldErrors, setFieldErrors] = useState({})
   const isEditing = mode === 'edit'
@@ -66,7 +71,7 @@ export function SubjectForm({ error, isPending, mode, onCancel, onClearError, on
     <form className="space-y-5" noValidate onSubmit={handleSubmit}>
       {error ? (
         <div
-          className="rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-200"
+          className="rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/25 dark:bg-rose-500/10 dark:text-rose-200"
           role="alert"
         >
           {error}
@@ -79,10 +84,10 @@ export function SubjectForm({ error, isPending, mode, onCancel, onClearError, on
           disabled={isPending}
           error={fieldErrors.name}
           id={`${mode}-subject-name`}
-          label="Subject name"
+          label={t('admin.subjects.fields.name')}
           name="name"
           onChange={updateField}
-          placeholder="Computer Science"
+          placeholder={t('admin.subjects.placeholders.name')}
           required
           value={values.name}
         />
@@ -92,10 +97,10 @@ export function SubjectForm({ error, isPending, mode, onCancel, onClearError, on
           disabled={isPending}
           error={fieldErrors.code}
           id={`${mode}-subject-code`}
-          label="Subject code"
+          label={t('admin.subjects.fields.code')}
           name="code"
           onChange={updateField}
-          placeholder="CS101"
+          placeholder={t('admin.subjects.placeholders.code')}
           required
           spellCheck="false"
           value={values.code}
@@ -105,39 +110,47 @@ export function SubjectForm({ error, isPending, mode, onCancel, onClearError, on
       <div>
         <div className="mb-2 flex items-center justify-between gap-4">
           <label
-            className="block text-sm font-medium text-slate-200"
+            className="block text-sm font-medium text-slate-700 dark:text-slate-200"
             htmlFor={`${mode}-description`}
           >
-            Description <span className="font-normal text-slate-500">(optional)</span>
+            {t('common.description')}{' '}
+            <span className="font-normal text-slate-500 dark:text-slate-400">
+              {t('common.optional')}
+            </span>
           </label>
-          <span className="text-xs text-slate-500">{values.description.trim().length}/2000</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">
+            {values.description.trim().length}/2000
+          </span>
         </div>
         <textarea
           aria-describedby={fieldErrors.description ? `${mode}-description-error` : undefined}
           aria-invalid={Boolean(fieldErrors.description)}
-          className="focus:border-brand-400 focus:ring-brand-500/20 min-h-28 w-full resize-y rounded-xl border border-slate-700 bg-slate-950/70 px-3.5 py-3 text-sm text-white transition outline-none placeholder:text-slate-600 focus:ring-4 disabled:cursor-not-allowed disabled:opacity-60"
+          className="focus:border-brand-400 focus:ring-brand-500/20 min-h-28 w-full resize-y rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm text-slate-950 transition outline-none placeholder:text-slate-400 focus:ring-4 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950/70 dark:text-white dark:placeholder:text-slate-600"
           disabled={isPending}
           id={`${mode}-description`}
           name="description"
           onChange={updateField}
-          placeholder="A short description of this subject"
+          placeholder={t('admin.subjects.placeholders.description')}
           value={values.description}
         />
         {fieldErrors.description ? (
-          <p className="mt-1.5 text-sm text-rose-300" id={`${mode}-description-error`}>
+          <p
+            className="mt-1.5 text-sm text-rose-700 dark:text-rose-300"
+            id={`${mode}-description-error`}
+          >
             {fieldErrors.description}
           </p>
         ) : null}
       </div>
 
-      <div className="flex flex-col-reverse gap-3 border-t border-slate-800 pt-5 sm:flex-row sm:justify-end">
+      <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end dark:border-slate-800">
         <button
-          className="rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:border-slate-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:text-white"
           disabled={isPending}
           onClick={onCancel}
           type="button"
         >
-          Cancel
+          {t('common.cancel')}
         </button>
         <button
           className="bg-brand-500 hover:bg-brand-400 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
@@ -146,11 +159,11 @@ export function SubjectForm({ error, isPending, mode, onCancel, onClearError, on
         >
           {isPending
             ? isEditing
-              ? 'Saving changes\u2026'
-              : 'Creating subject\u2026'
+              ? t('common.savingChanges')
+              : t('admin.subjects.creating')
             : isEditing
-              ? 'Save changes'
-              : 'Create subject'}
+              ? t('common.saveChanges')
+              : t('admin.subjects.create')}
         </button>
       </div>
     </form>

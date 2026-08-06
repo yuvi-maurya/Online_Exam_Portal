@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import i18n from '../../i18n/index.js'
 import { ApiError, getApiErrorMessage } from '../../services/apiClient.js'
 import { saveAnswer, studentQueryKeys } from '../../services/studentApi.js'
 
@@ -295,7 +296,7 @@ export function useAttemptAutosave({
             setSaveStatuses((current) => ({
               ...current,
               [questionId]: {
-                message: getApiErrorMessage(error, 'This answer could not be saved.'),
+                message: getApiErrorMessage(error, i18n.t('student.attempt.errors.answerSave')),
                 state: 'failed',
               },
             }))

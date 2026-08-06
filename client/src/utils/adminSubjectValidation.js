@@ -1,3 +1,5 @@
+import i18n from '../i18n/index.js'
+
 const SUBJECT_CODE_PATTERN = /^[A-Z0-9][A-Z0-9_-]{1,29}$/
 
 export function normalizeSubjectValues(values) {
@@ -13,16 +15,15 @@ export function validateSubjectValues(values) {
   const errors = {}
 
   if (normalized.name.length < 2 || normalized.name.length > 100) {
-    errors.name = 'Subject name must be between 2 and 100 characters.'
+    errors.name = i18n.t('validation.subject.nameLength')
   }
 
   if (!SUBJECT_CODE_PATTERN.test(normalized.code)) {
-    errors.code =
-      'Use 2 to 30 uppercase letters, numbers, hyphens, or underscores, starting with a letter or number.'
+    errors.code = i18n.t('validation.subject.codeFormat')
   }
 
   if (normalized.description.length > 2_000) {
-    errors.description = 'Description must not exceed 2000 characters.'
+    errors.description = i18n.t('validation.subject.descriptionMaximum')
   }
 
   return errors

@@ -1,7 +1,7 @@
 export function SubmitButton({ children, isLoading, loadingLabel }) {
   return (
     <button
-      className="bg-brand-500 hover:bg-brand-400 focus-visible:outline-brand-400 flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-950/30 transition focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+      className="bg-brand-500 hover:bg-brand-400 focus-visible:outline-brand-400 flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-900/20 transition focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:shadow-sky-950/30"
       disabled={isLoading}
       type="submit"
     >
