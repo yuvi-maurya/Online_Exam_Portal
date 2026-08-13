@@ -1,0 +1,4 @@
+type,content,difficulty,marks,subjectCode,option1,option2,option3,option4,correctOption,correctAnswerText
+MCQ,"Which protocol encrypts standard web traffic?",EASY,2,CS101,HTTP,HTTPS,FTP,Telnet,2,
+TRUE_FALSE,"JavaScript can run in a web browser.",EASY,1,CS101,True,False,,,1,
+FILL_BLANK,"Complete the phrase: PostgreSQL is a ______ database.",MEDIUM,2,CS101,,,,,,relational

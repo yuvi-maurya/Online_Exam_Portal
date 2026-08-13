@@ -157,6 +157,74 @@ Admin-created accounts receive the existing password-reset email so their owner 
 password without an Admin handling it. Deactivated accounts retain their historical data but
 cannot log in.
 
+## Bulk Import Formats
+
+Both bulk-import endpoints accept a single `.csv` or `.xlsx` file in the multipart field named
+`file`. Files may contain at most 1,000 data rows and must be no larger than 5 MB. The whole file
+is parsed before any rows are created; individual valid rows are then created while invalid rows
+are returned in the import summary as skipped rows.
+
+Header matching is case-insensitive and ignores spaces, hyphens, and underscores. For example,
+`question type`, `Question-Type`, and `question_type` all match `questionType`.
+
+### Teacher question import
+
+Use `POST /api/teacher/questions/bulk-import` as an authenticated Teacher. Required canonical
+columns are `type`, `content`, `difficulty`, `marks`, and exactly one subject reference column:
+`subjectCode` or `subjectId`.
+
+| Canonical column | Accepted header aliases | Rules |
+| --- | --- | --- |
+| `type` | `type`, `questionType` | One of `MCQ`, `TRUE_FALSE`, `FILL_BLANK`, `SHORT_ANSWER`, `ESSAY`, `CODING`. |
+| `content` | `content`, `question`, `questionText`, `text` | Required; 1–20,000 characters after trimming. |
+| `difficulty` | `difficulty` | One of `EASY`, `MEDIUM`, `HARD`. |
+| `marks` | `marks` | Required integer from 1 to 1,000,000. |
+| `subjectCode` | `subjectCode` | Required unless `subjectId` is supplied; matches an existing subject code case-insensitively. |
+| `subjectId` | `subjectId` | Required unless `subjectCode` is supplied; must be an existing subject ID. Do not supply both subject columns in a row. |
+| `correctAnswerText` | `correctAnswerText`, `correctAnswer`, `answer` | Required for `FILL_BLANK`, `SHORT_ANSWER`, `ESSAY`, and `CODING`; not allowed for `MCQ` or `TRUE_FALSE`. |
+| `options` | `options` | Optional JSON array for a choice question; cannot be combined with numbered option columns. |
+| `correctOption` | `correctOption`, `correctOptionIndex` | Required when options are supplied as text values or numbered columns. It is a 1-based position or an exact, case-insensitive option-text match. |
+| `option1` … `option100` | `option1` … `option100` (leading zeroes allowed) | Optional numbered choice columns. Populated options must be consecutive from `option1`; cannot be combined with `options`. |
+
+Choice questions use one of two mutually exclusive option formats:
+
+- Put a JSON array in `options`. A JSON array of strings requires `correctOption`; a JSON array
+  of objects may instead use exactly one `isCorrect: true`. Object entries may contain only
+  `text`, `order`, and `isCorrect` (`order` defaults to the array index).
+- Put consecutive `option1`, `option2`, … columns in the file and supply `correctOption` as a
+  1-based option number or exact option text.
+
+`MCQ` requires at least two options and exactly one correct option. `TRUE_FALSE` requires exactly
+two options and exactly one correct option. The four open-answer types cannot include options.
+
+The ready-to-edit CSV template is
+[`docs/bulk-import-templates/questions-template.csv`](docs/bulk-import-templates/questions-template.csv).
+Replace `CS101` with a subject code that exists in the target environment before importing.
+
+```csv
+type,content,difficulty,marks,subjectCode,option1,option2,correctOption
+MCQ,"Which protocol encrypts standard web traffic?",EASY,2,CS101,HTTP,HTTPS,2
+```
+
+The same data can be uploaded in an `.xlsx` worksheet: put the header row first and place the
+data in the first non-empty worksheet.
+
+### Admin student import
+
+Use `POST /api/admin/students/bulk-import` as an authenticated Admin. The only accepted columns
+are `name` and `email` (their only aliases are the same normalized names). Both are required.
+Names are normalized whitespace and must be 2–100 characters; emails are trimmed, lower-cased,
+and must be a valid email address no longer than 254 characters. Each successfully created
+student receives the standard password-setup email.
+
+The ready-to-edit CSV template is
+[`docs/bulk-import-templates/students-template.csv`](docs/bulk-import-templates/students-template.csv).
+
+```csv
+name,email
+Ava Patel,ava.patel@example.com
+```
+
 ## Prisma
 
 After setting a valid `DATABASE_URL`, apply migrations, generate Prisma Client, seed development
