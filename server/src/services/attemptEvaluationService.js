@@ -256,7 +256,8 @@ export async function evaluateSubmittedAttempt({
       grade = {
         isCorrect,
         marksAwarded: isCorrect ? maximumMarks : 0,
-        needsManualReview: true,
+        // Auto-graded by exact text match; no manual review required when grading is deterministic
+        needsManualReview: false,
       }
     } else if (MANUAL_TYPES.has(answer.question.type)) {
       grade = {
