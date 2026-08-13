@@ -26,7 +26,10 @@ const upload = multer({
     fileSize: MAX_IMPORT_FILE_BYTES,
     fields: 0,
     files: 1,
-    parts: 1,
+    // Busboy emits `partsLimit` as soon as this count is reached. Allow the
+    // one permitted file part; any extra field or file is still rejected by
+    // the stricter `fields` and `files` limits above.
+    parts: 2,
   },
   storage: multer.memoryStorage(),
 })
